@@ -1,0 +1,176 @@
+{
+  "actualizado": "2026-11-17",
+  "productos": {
+    "pata": [
+      {
+        "id": "pata-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Listón abeto cepillado 70×70 mm",
+        "seccion": "70×70",
+        "precio": 12.6,
+        "largo": 2400,
+        "url": "https://www.obramat.es/productos/liston-de-abeto-cepillado-2400x70x70mm-10977953.html",
+        "nota": "Confirma el precio: la web mostraba también el de una tienda de Canarias.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "pata-leroymerlin-1",
+        "tienda": "Leroy Merlin",
+        "producto": "Listón abeto cepillado 57×57 mm",
+        "seccion": "57×57",
+        "precio": 11.95,
+        "largo": 2400,
+        "url": "https://leroymerlin.es/fp/14131243/liston-listones-de-abeto-cepillado-largo-24-m",
+        "aviso": "Sección distinta: pon 57 en «Grosor de la pata» y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ],
+    "trav": [
+      {
+        "id": "trav-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Listón abeto sin cepillar 70×40 mm",
+        "seccion": "40×70",
+        "precio": 7.9,
+        "largo": 2400,
+        "url": "https://www.obramat.es/productos/liston-de-abeto-sin-cepillar-2400x70x40mm-10786083.html",
+        "nota": "Sin cepillar: superficie basta.",
+        "aviso": "Sección distinta: pon 40 en «Travesaño: grosor» y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "trav-obramat-1",
+        "tienda": "Obramat",
+        "producto": "Listón pino laminado cepillado 70×38 mm",
+        "seccion": "38×70",
+        "precio": 10,
+        "largo": 2400,
+        "url": "https://www.obramat.es/productos/liston-de-pino-laminado-cepillado-2400x70x38mm-10786426.html",
+        "aviso": "Sección distinta: pon 38 en «Travesaño: grosor» y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "trav-leroymerlin-2",
+        "tienda": "Leroy Merlin",
+        "producto": "Listón abeto cepillado 68×34 mm (pack de 5)",
+        "seccion": "34×68",
+        "precio": 13.23,
+        "largo": 2400,
+        "url": "https://www.leroymerlin.es/productos/pack-de-5-listones-de-madera-cepillados-de-68x34mm-x-2-4-m-97633173.html",
+        "nota": "Se vende en pack de 5 por 66,15 €; aquí va el precio por listón.",
+        "aviso": "Sección distinta: pon 34 en «Travesaño: grosor» y 68 en el canto.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ],
+    "tapa": [
+      {
+        "id": "tapa-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Contrachapado pino fenólico 244×122, 15 mm",
+        "seccion": "15 mm",
+        "precio": 54,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.obramat.es/productos/tablero-contrachapado-de-pino-fenolico-244x122x1-5cm-25150651.html",
+        "aviso": "Es de 15 mm: pon 15 en «Tapa: grosor».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "tapa-leroymerlin-1",
+        "tienda": "Leroy Merlin",
+        "producto": "Contrachapado pino fenólico 122×244, 15 mm",
+        "seccion": "15 mm",
+        "precio": 55.99,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-contrachapado-de-pino-fenolico-uso-interior-exterior-de-122x244x1-5cm-87617140.html",
+        "aviso": "Es de 15 mm: pon 15 en «Tapa: grosor».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ],
+    "balda": [
+      {
+        "id": "balda-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Tablero OSB3 250×125, 15 mm",
+        "seccion": "15 mm",
+        "precio": 23.89,
+        "largo": 2500,
+        "ancho": 1250,
+        "url": "https://www.obramat.es/productos/tablero-osb3-250x125x1-5cm-25064668.html",
+        "nota": "Precio por cantidad.",
+        "aviso": "Es de 15 mm: pon 15 en «Balda: grosor».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "balda-bricodept-1",
+        "tienda": "Brico Depôt",
+        "producto": "Tablero OSB natural 250×125, 18 mm",
+        "seccion": "18 mm",
+        "precio": 33.63,
+        "largo": 2500,
+        "ancho": 1250,
+        "url": "https://www.bricodepot.es/tablero-de-osb-natural-250-x-125-x-1-8-cm-8421468412921",
+        "nota": "Precio de oferta (normal 39,95 €).",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "balda-bricodept-2",
+        "tienda": "Brico Depôt",
+        "producto": "Tablero OSB3 250×125, 18 mm",
+        "seccion": "18 mm",
+        "precio": 35.45,
+        "largo": 2500,
+        "ancho": 1250,
+        "url": "https://www.bricodepot.es/5063022548115",
+        "nota": "Ficha antigua: confirma el precio.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ],
+    "rueda": [
+      {
+        "id": "rueda-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Rueda giratoria Ø75 poliuretano con freno, 40 kg, 98 mm de alto",
+        "seccion": "98 mm",
+        "precio": 10.9,
+        "url": "https://www.obramat.es/productos/rueda-acrilica-giratoria-75mm-poliuretano-pisada-blanda-con-freno-75mm-40kg-ruedas-alex-25108233.html",
+        "aviso": "Mide 98 mm de alto: pon 98 en «Altura de la rueda».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      },
+      {
+        "id": "rueda-obramat-1",
+        "tienda": "Obramat",
+        "producto": "Rueda giratoria Ø80 poliamix con freno, 130 kg",
+        "precio": 30.37,
+        "url": "https://www.obramat.es/productos/rueda-giratoria-80mm-poliamix-hasta-130kg-llanta-acero-inoxidable-10569230.html",
+        "nota": "Más robusta. Mira su altura en la ficha.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ]
+  }
+}

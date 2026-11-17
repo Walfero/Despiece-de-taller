@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Despiece de taller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: herramienta de taller. Entradas a la izquierda, resultado (lista para la tienda + planos de corte) a la derecha; una columna en móvil. */
+  --bg: #eef1f0;
+  --surface: #ffffff;
+  --ink: #1c2422;
+  --muted: #5d6965;
+  --line: #d3dad7;
+  --accent: #c27a12;      /* pino */
+  --accent-ink: #ffffff;
+  --piece: #f3d9a4;
+  --piece-line: #a8690e;
+  --waste: #e3e8e6;
+  --bad: #b3261e;
+  /* Tintes suaves por apartado: se mezclan con la superficie, así funcionan en claro y oscuro */
+  --t-pino: #c27a12; --t-roble: #8a5a2b; --t-pizarra: #3f6f8f; --t-salvia: #4f8a5b; --t-gris: #6b7773;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a19; --surface: #1d2523; --ink: #e7ecea; --muted: #9aa7a2; --line: #33403c;
+    --accent: #e3a03a; --accent-ink: #1a1305; --piece: #6b4b16; --piece-line: #e3a03a;
+    --waste: #26302d; --bad: #ff8a80; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a19; --surface: #1d2523; --ink: #e7ecea; --muted: #9aa7a2; --line: #33403c;
+  --accent: #e3a03a; --accent-ink: #1a1305; --piece: #6b4b16; --piece-line: #e3a03a;
+  --waste: #26302d; --bad: #ff8a80; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+header { padding: 20px 20px 8px; max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: end; justify-content: space-between; }
+h1 { font: 800 28px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 700 18px/1.2 var(--font-display); margin: 0; text-wrap: balance; }
+h3 { font: 600 15px/1.3 var(--font-body); margin: 0; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+main { max-width: 1280px; margin: 0 auto; padding: 12px 20px 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.num, input[type="number"], .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+label.small { font-size: 12px; color: var(--muted); display: block; }
+input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0; }
+input:disabled { opacity: .35; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { font: 600 14px/1 var(--font-body); border-radius: 6px; padding: 9px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.icon { padding: 6px 9px; color: var(--muted); }
+button.icon:hover { color: var(--bad); border-color: var(--bad); }
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.card.t-pino { --tint: var(--t-pino); } .card.t-roble { --tint: var(--t-roble); } .card.t-pizarra { --tint: var(--t-pizarra); }
+.card.t-salvia { --tint: var(--t-salvia); } .card.t-gris { --tint: var(--t-gris); }
+section.card[class*="t-"] { background: color-mix(in srgb, var(--tint) 6%, var(--surface)); border-color: color-mix(in srgb, var(--tint) 22%, var(--line)); border-top: 3px solid color-mix(in srgb, var(--tint) 70%, var(--surface)); }
+section.card[class*="t-"] h2 { color: color-mix(in srgb, var(--tint) 45%, var(--ink)); }
+section.card[class*="t-"] input, section.card[class*="t-"] select, section.card[class*="t-"] pre.shop, section.card[class*="t-"] .tile { background: color-mix(in srgb, var(--tint) 3%, var(--surface)); }
+.row { display: grid; gap: 6px; align-items: end; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.row:last-child { border-bottom: 0; padding-bottom: 0; }
+.prow { grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 84px 84px 60px auto; }
+.mrow { grid-template-columns: minmax(0, 2fr) 104px 84px 84px 80px auto; }
+@media (max-width: 560px) {
+  .prow { grid-template-columns: 1fr 1fr 1fr auto; }
+  .prow .f-name, .prow .f-mat { grid-column: span 2; }
+  .prow .f-del { grid-column: 4; grid-row: 1; }
+  .prow .f-name { grid-column: 1 / 4; }
+  .prow .f-mat { grid-column: 1 / 5; }
+  .mrow { grid-template-columns: 1fr 1fr 1fr auto; }
+  .mrow .f-name { grid-column: 1 / 4; }
+  .mrow .f-del { grid-column: 4; grid-row: 1; }
+  .mrow .f-type { grid-column: 1 / 3; }
+  .mrow .f-price { grid-column: 3 / 5; }
+}
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.tile .v { font: 700 24px/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.alert { border-left: 3px solid var(--bad); padding: 6px 10px; color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, transparent); border-radius: 4px; font-size: 14px; }
+pre.shop { margin: 0; white-space: pre-wrap; font: 13px/1.55 var(--font-mono); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 420px; overflow: auto; }
+.mat { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.mat:first-of-type { border-top: 0; padding-top: 0; }
+.chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; font-weight: 500; }
+.chip.good { color: var(--accent); border-color: var(--accent); }
+.diag { overflow-x: auto; }
+.diag svg { display: block; width: 100%; height: auto; }
+.diag svg text { fill: var(--ink); font-family: var(--font-mono); }
+.sheetlabel { font-size: 13px; color: var(--muted); margin: 4px 0 2px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.copied { font-size: 13px; color: var(--accent); align-self: center; }
+.f-store { grid-column: 1 / -1; }
+.hint.warn { color: var(--accent); margin-top: 4px; }
+table.prev a { color: var(--ink); text-decoration-color: var(--accent); text-underline-offset: 2px; }
+.fieldset-title { grid-column: 1 / -1; font: 600 13px/1.2 var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+table.prev { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.prev td, table.prev th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.prev th { font-size: 12px; color: var(--muted); font-weight: 500; }
+table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { button { transition: background .15s, border-color .15s; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Despiece de taller</h1>
+    <p class="sub">Piezas y materiales → lista de cortes para la tienda, planos de corte y coste. Medidas en milímetros.</p>
+  </div>
+  <div class="btns">
+    <button id="btn-reset" type="button">Cargar ejemplo: banco 160×90×110</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card t-pino" id="tpl-card">
+      <div class="head"><h2>Plantilla: banco de trabajo</h2><button class="primary" id="tpl-apply" type="button">Generar piezas</button></div>
+      <p class="hint">Pon las medidas del banco y las secciones reales de la tienda. «Generar piezas» sustituye la lista de piezas de abajo y conserva los precios de los materiales.</p>
+      <div class="settings" id="tpl-fields"></div>
+      <div id="tpl-preview"></div>
+    </section>
+
+    <section class="card t-roble">
+      <div class="head"><h2>Piezas</h2><button class="primary" id="add-piece" type="button">+ Añadir pieza</button></div>
+      <p class="hint">Largo = lado que va a lo largo de la barra o del tablero. En barras solo cuenta el largo.</p>
+      <div class="rows" id="pieces"></div>
+    </section>
+
+    <section class="card t-pizarra">
+      <div class="head"><h2>Materiales</h2><button id="add-mat" type="button">+ Añadir material</button></div>
+      <p class="hint">Barra: listón o madera maciza (largo de la barra). Tablero: largo × ancho del tablero entero. Unidad: herrajes, ruedas, tornillería. Precio por barra, tablero o unidad.</p>
+      <div class="rows" id="mats"></div>
+    </section>
+
+    <section class="card t-gris">
+      <h2>Ajustes</h2>
+      <div class="settings">
+        <div><label class="small" for="kerf">Grosor del corte de sierra (mm)</label><input id="kerf" type="number" min="0" step="0.5" inputmode="decimal"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card t-pino">
+      <h2>Resumen</h2>
+      <div class="tiles" id="tiles"></div>
+      <div id="alerts" class="rows"></div>
+    </section>
+
+    <section class="card t-salvia">
+      <h2>Dónde comprar</h2>
+      <div id="buy"></div>
+    </section>
+
+    <section class="card t-pizarra">
+      <div class="head"><h2>Lista para la tienda</h2>
+        <div class="btns"><span class="copied" id="copied" aria-live="polite"></span><button class="primary" id="copy" type="button">Copiar lista</button></div>
+      </div>
+      <pre class="shop" id="shop"></pre>
+    </section>
+
+    <section class="card t-roble">
+      <h2>Planos de corte</h2>
+      <div id="plans"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const KEY = 'despiece-taller-v1';
+const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100, pata: 70, travG: 45, travC: 70, nInter: 2, tapaMat: 'Contrachapado', tapaG: 18, balda: 'si', baldaMat: 'OSB', baldaG: 18 };
+let uid = 1; const nid = () => 'i' + (Date.now().toString(36)) + (uid++);
+
+/* Precios consultados en las webs de las tiendas (IVA incluido, península). Cambian según tienda y día. */
+let PRECIOS_FECHA = '17 de noviembre de 2026';
+let CATALOGO = {
+  pata: [
+    { tienda: 'Obramat', producto: 'Listón abeto cepillado 70×70 mm', seccion: '70×70', precio: 12.60, largo: 2400, url: 'https://www.obramat.es/productos/liston-de-abeto-cepillado-2400x70x70mm-10977953.html', nota: 'Confirma el precio: la web mostraba también el de una tienda de Canarias.' },
+    { tienda: 'Leroy Merlin', producto: 'Listón abeto cepillado 57×57 mm', seccion: '57×57', precio: 11.95, largo: 2400, url: 'https://leroymerlin.es/fp/14131243/liston-listones-de-abeto-cepillado-largo-24-m', aviso: 'Sección distinta: pon 57 en «Grosor de la pata» y genera las piezas.' },
+  ],
+  trav: [
+    { tienda: 'Obramat', producto: 'Listón abeto sin cepillar 70×40 mm', seccion: '40×70', precio: 7.90, largo: 2400, url: 'https://www.obramat.es/productos/liston-de-abeto-sin-cepillar-2400x70x40mm-10786083.html', nota: 'Sin cepillar: superficie basta.', aviso: 'Sección distinta: pon 40 en «Travesaño: grosor» y genera las piezas.' },
+    { tienda: 'Obramat', producto: 'Listón pino laminado cepillado 70×38 mm', seccion: '38×70', precio: 10.00, largo: 2400, url: 'https://www.obramat.es/productos/liston-de-pino-laminado-cepillado-2400x70x38mm-10786426.html', aviso: 'Sección distinta: pon 38 en «Travesaño: grosor» y genera las piezas.' },
+    { tienda: 'Leroy Merlin', producto: 'Listón abeto cepillado 68×34 mm (pack de 5)', seccion: '34×68', precio: 13.23, largo: 2400, url: 'https://www.leroymerlin.es/productos/pack-de-5-listones-de-madera-cepillados-de-68x34mm-x-2-4-m-97633173.html', nota: 'Se vende en pack de 5 por 66,15 €; aquí va el precio por listón.', aviso: 'Sección distinta: pon 34 en «Travesaño: grosor» y 68 en el canto.' },
+  ],
+  tapa: [
+    { tienda: 'Obramat', producto: 'Contrachapado pino fenólico 244×122, 15 mm', seccion: '15 mm', precio: 54.00, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-contrachapado-de-pino-fenolico-244x122x1-5cm-25150651.html', aviso: 'Es de 15 mm: pon 15 en «Tapa: grosor».' },
+    { tienda: 'Leroy Merlin', producto: 'Contrachapado pino fenólico 122×244, 15 mm', seccion: '15 mm', precio: 55.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-contrachapado-de-pino-fenolico-uso-interior-exterior-de-122x244x1-5cm-87617140.html', aviso: 'Es de 15 mm: pon 15 en «Tapa: grosor».' },
+  ],
+  balda: [
+    { tienda: 'Obramat', producto: 'Tablero OSB3 250×125, 15 mm', seccion: '15 mm', precio: 23.89, largo: 2500, ancho: 1250, url: 'https://www.obramat.es/productos/tablero-osb3-250x125x1-5cm-25064668.html', nota: 'Precio por cantidad.', aviso: 'Es de 15 mm: pon 15 en «Balda: grosor».' },
+    { tienda: 'Brico Depôt', producto: 'Tablero OSB natural 250×125, 18 mm', seccion: '18 mm', precio: 33.63, largo: 2500, ancho: 1250, url: 'https://www.bricodepot.es/tablero-de-osb-natural-250-x-125-x-1-8-cm-8421468412921', nota: 'Precio de oferta (normal 39,95 €).' },
+    { tienda: 'Brico Depôt', producto: 'Tablero OSB3 250×125, 18 mm', seccion: '18 mm', precio: 35.45, largo: 2500, ancho: 1250, url: 'https://www.bricodepot.es/5063022548115', nota: 'Ficha antigua: confirma el precio.' },
+  ],
+  rueda: [
+    { tienda: 'Obramat', producto: 'Rueda giratoria Ø75 poliuretano con freno, 40 kg, 98 mm de alto', seccion: '98 mm', precio: 10.90, url: 'https://www.obramat.es/productos/rueda-acrilica-giratoria-75mm-poliuretano-pisada-blanda-con-freno-75mm-40kg-ruedas-alex-25108233.html', aviso: 'Mide 98 mm de alto: pon 98 en «Altura de la rueda».' },
+    { tienda: 'Obramat', producto: 'Rueda giratoria Ø80 poliamix con freno, 130 kg', precio: 30.37, url: 'https://www.obramat.es/productos/rueda-giratoria-80mm-poliamix-hasta-130kg-llanta-acero-inoxidable-10569230.html', nota: 'Más robusta. Mira su altura en la ficha.' },
+  ],
+};
+const ofertasDe = (m) => (m && m.rol && CATALOGO[m.rol]) || [];
+function ofertaActiva(m) {
+  const of = ofertasDe(m);
+  if (!of.length || m.oferta === 'manual') return null;
+  if (m.oferta === 'auto' || m.oferta == null) return of.reduce((a, b) => (b.precio < a.precio ? b : a));
+  return of[m.oferta] || null;
+}
+function syncDims(m) {
+  const o = ofertaActiva(m); if (!o) return;
+  if (m.tipo === 'barra' && o.largo) m.largo = o.largo;
+  if (m.tipo === 'tablero' && o.largo && o.ancho) { m.largo = o.largo; m.ancho = o.ancho; }
+}
+const eurTxt = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+function example() {
+  const m = {
+    p70: { id: 'p70', rol: 'pata', oferta: 'auto', nombre: 'Pino 70×70', tipo: 'barra', largo: 2400, ancho: 0, precio: '' },
+    p45: { id: 'p45', rol: 'trav', oferta: 'auto', nombre: 'Pino 45×70', tipo: 'barra', largo: 2400, ancho: 0, precio: '' },
+    con: { id: 'con', rol: 'tapa', oferta: 'auto', nombre: 'Contrachapado 18 mm', tipo: 'tablero', largo: 2440, ancho: 1220, precio: '' },
+    osb: { id: 'osb', rol: 'balda', oferta: 'auto', nombre: 'OSB 18 mm', tipo: 'tablero', largo: 2440, ancho: 1220, precio: '' },
+    rue: { id: 'rue', rol: 'rueda', oferta: 'auto', nombre: 'Rueda giratoria con freno', tipo: 'unidad', largo: 0, ancho: 0, precio: '' },
+  };
+  return {
+    kerf: 3,
+    tpl: { ...TPL_DEFAULT },
+    mats: Object.values(m),
+    pieces: [
+      { id: nid(), nombre: 'Pata', mat: 'p70', largo: 982, ancho: 0, cant: 4 },
+      { id: nid(), nombre: 'Travesaño largo', mat: 'p45', largo: 1360, ancho: 0, cant: 4 },
+      { id: nid(), nombre: 'Travesaño corto extremo', mat: 'p45', largo: 660, ancho: 0, cant: 4 },
+      { id: nid(), nombre: 'Travesaño intermedio', mat: 'p45', largo: 710, ancho: 0, cant: 2 },
+      { id: nid(), nombre: 'Tapa', mat: 'con', largo: 1600, ancho: 900, cant: 1 },
+      { id: nid(), nombre: 'Balda', mat: 'osb', largo: 1360, ancho: 800, cant: 1 },
+      { id: nid(), nombre: 'Rueda', mat: 'rue', largo: 0, ancho: 0, cant: 4 },
+    ],
+  };
+}
+
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || example(); } catch (e) { state = example(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+// Datos guardados de versiones anteriores: asigna el papel de cada material del ejemplo.
+{ const roles = { p70: 'pata', p45: 'trav', con: 'tapa', osb: 'balda', rue: 'rueda' };
+  state.mats.forEach(m => { if (!m.rol && roles[m.id]) m.rol = roles[m.id]; if (m.rol && m.oferta == null) m.oferta = (m.precio !== '' && m.precio != null) ? 'manual' : 'auto'; }); }
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
+const fmt = (n) => Math.round(n).toLocaleString('es-ES');
+const eur = (n) => n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+const matById = (id) => state.mats.find(m => m.id === id);
+
+/* ---------- Editores ---------- */
+function renderPieces() {
+  const box = $('#pieces');
+  box.innerHTML = state.pieces.map(p => {
+    const m = matById(p.mat); const tipo = m ? m.tipo : 'barra';
+    const opts = state.mats.map(mm => `<option value="${esc(mm.id)}" ${mm.id === p.mat ? 'selected' : ''}>${esc(mm.nombre)}</option>`).join('');
+    return `<div class="row prow" data-id="${esc(p.id)}">
+      <div class="f-name"><label class="small" for="pn-${p.id}">Pieza</label><input id="pn-${p.id}" data-f="nombre" value="${esc(p.nombre)}"></div>
+      <div class="f-mat"><label class="small" for="pm-${p.id}">Material</label><select id="pm-${p.id}" data-f="mat">${opts}</select></div>
+      <div><label class="small" for="pl-${p.id}">Largo</label><input id="pl-${p.id}" data-f="largo" type="number" min="0" inputmode="numeric" value="${p.largo || ''}" ${tipo === 'unidad' ? 'disabled' : ''}></div>
+      <div><label class="small" for="pa-${p.id}">Ancho</label><input id="pa-${p.id}" data-f="ancho" type="number" min="0" inputmode="numeric" value="${p.ancho || ''}" ${tipo !== 'tablero' ? 'disabled' : ''}></div>
+      <div><label class="small" for="pc-${p.id}">Cant.</label><input id="pc-${p.id}" data-f="cant" type="number" min="1" inputmode="numeric" value="${p.cant}"></div>
+      <div class="f-del"><button class="icon" type="button" data-del="piece" aria-label="Eliminar ${esc(p.nombre)}">✕</button></div>
+    </div>`;
+  }).join('') || '<p class="hint">Aún no hay piezas.</p>';
+}
+
+function tiendaSelect(m) {
+  const of = ofertasDe(m); if (!of.length) return '';
+  const cheapest = of.reduce((a, b) => (b.precio < a.precio ? b : a));
+  const opts = [`<option value="auto" ${m.oferta === 'auto' || m.oferta == null ? 'selected' : ''}>Más barato: ${esc(cheapest.tienda)} · ${eurTxt(cheapest.precio)}</option>`]
+    .concat(of.map((o, i) => `<option value="${i}" ${String(m.oferta) === String(i) ? 'selected' : ''}>${esc(o.tienda)} · ${eurTxt(o.precio)} · ${esc(o.producto)}</option>`))
+    .concat([`<option value="manual" ${m.oferta === 'manual' ? 'selected' : ''}>Precio manual</option>`]);
+  const o = ofertaActiva(m);
+  return `<div class="f-store"><label class="small" for="ms-${m.id}">Tienda (precios del ${PRECIOS_FECHA})</label><select id="ms-${m.id}" data-f="oferta">${opts.join('')}</select>
+    ${o && o.aviso ? `<p class="hint warn">${esc(o.aviso)}</p>` : ''}</div>`;
+}
+
+function renderMats() {
+  const box = $('#mats');
+  state.mats.forEach(syncDims);
+  box.innerHTML = state.mats.map(m => { const o = ofertaActiva(m); const lockDims = !!o; return `<div class="row mrow" data-id="${esc(m.id)}">
+      <div class="f-name"><label class="small" for="mn-${m.id}">Material</label><input id="mn-${m.id}" data-f="nombre" value="${esc(m.nombre)}"></div>
+      <div class="f-type"><label class="small" for="mt-${m.id}">Tipo</label><select id="mt-${m.id}" data-f="tipo">
+        <option value="barra" ${m.tipo === 'barra' ? 'selected' : ''}>Barra</option>
+        <option value="tablero" ${m.tipo === 'tablero' ? 'selected' : ''}>Tablero</option>
+        <option value="unidad" ${m.tipo === 'unidad' ? 'selected' : ''}>Unidad</option></select></div>
+      <div><label class="small" for="ml-${m.id}">Largo</label><input id="ml-${m.id}" data-f="largo" type="number" min="0" inputmode="numeric" value="${m.largo || ''}" ${m.tipo === 'unidad' || lockDims ? 'disabled' : ''}></div>
+      <div><label class="small" for="ma-${m.id}">Ancho</label><input id="ma-${m.id}" data-f="ancho" type="number" min="0" inputmode="numeric" value="${m.ancho || ''}" ${m.tipo !== 'tablero' || lockDims ? 'disabled' : ''}></div>
+      <div class="f-price"><label class="small" for="mp-${m.id}">Precio €</label><input id="mp-${m.id}" data-f="precio" type="number" min="0" step="0.01" inputmode="decimal" value="${o ? o.precio.toFixed(2) : (m.precio ?? '')}" ${o ? 'disabled' : ''}></div>
+      <div class="f-del"><button class="icon" type="button" data-del="mat" aria-label="Eliminar ${esc(m.nombre)}">✕</button></div>
+      ${tiendaSelect(m)}
+    </div>`; }).join('');
+}
+
+function bindEditor(boxSel, list, rerender) {
+  const box = $(boxSel);
+  box.addEventListener('input', (e) => {
+    const row = e.target.closest('.row'); const f = e.target.dataset.f; if (!row || !f) return;
+    const item = state[list].find(x => x.id === row.dataset.id); if (!item) return;
+    const v = e.target.value;
+    if (f === 'oferta') { item.oferta = (v === 'auto' || v === 'manual') ? v : Number(v); syncDims(item); save(); renderMats(); compute(); return; }
+    item[f] = (f === 'nombre' || f === 'mat' || f === 'tipo') ? v : (f === 'precio' ? v : num(v));
+    save(); compute();
+    if (f === 'nombre' && list === 'mats') renderPieces();
+  });
+  box.addEventListener('change', (e) => {
+    const f = e.target.dataset.f;
+    if (f === 'mat' || f === 'tipo') { renderPieces(); renderMats(); compute(); }
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    const id = b.closest('.row').dataset.id;
+    if (list === 'mats' && state.pieces.some(p => p.mat === id)) {
+      showAlert('Ese material lo usan algunas piezas. Cámbiales el material antes de eliminarlo.'); return;
+    }
+    state[list] = state[list].filter(x => x.id !== id); save(); rerender(); compute();
+  });
+}
+
+let tempAlert = '';
+function showAlert(t) { tempAlert = t; compute(); setTimeout(() => { tempAlert = ''; compute(); }, 4000); }
+
+/* ---------- Cálculo ---------- */
+// Barras: First Fit Decreasing. Cada corte consume largo + sierra; la barra admite largo + sierra (el último corte no necesita sierra).
+function packBars(items, stock, kerf) {
+  const sorted = [...items].sort((a, b) => b.largo - a.largo);
+  const bars = []; const bad = [];
+  for (const it of sorted) {
+    if (it.largo > stock) { bad.push(it); continue; }
+    let bar = bars.find(b => b.used + it.largo + kerf <= stock + kerf);
+    if (!bar) { bar = { used: 0, cuts: [] }; bars.push(bar); }
+    bar.cuts.push(it); bar.used += it.largo + kerf;
+  }
+  bars.forEach(b => { b.sobra = Math.max(0, stock - (b.used - kerf)); });
+  return { bars, bad };
+}
+
+// Tableros: guillotina con mejor ajuste por lado corto y giro de piezas.
+function packSheets(items, W, H, kerf) {
+  const sorted = [...items].sort((a, b) => (b.largo * b.ancho) - (a.largo * a.ancho) || Math.max(b.largo, b.ancho) - Math.max(a.largo, a.ancho));
+  const sheets = []; const bad = [];
+  const newSheet = () => { const s = { free: [{ x: 0, y: 0, w: W + kerf, h: H + kerf }], placed: [] }; sheets.push(s); return s; };
+  for (const it of sorted) {
+    const opts = [[it.largo, it.ancho, false], [it.ancho, it.largo, true]];
+    if (!opts.some(([w, h]) => w <= W && h <= H)) { bad.push(it); continue; }
+    let best = null;
+    const tryIn = (s, si) => s.free.forEach((r, ri) => opts.forEach(([w, h, rot]) => {
+      const pw = w + kerf, ph = h + kerf;
+      if (pw <= r.w && ph <= r.h) {
+        const score = Math.min(r.w - pw, r.h - ph);
+        if (!best || score < best.score) best = { si, ri, pw, ph, w, h, rot, score };
+      }
+    }));
+    sheets.forEach((s, si) => tryIn(s, si));
+    if (!best) { newSheet(); tryIn(sheets[sheets.length - 1], sheets.length - 1); }
+    const s = sheets[best.si]; const r = s.free[best.ri];
+    s.placed.push({ ...it, x: r.x, y: r.y, w: best.w, h: best.h, rot: best.rot });
+    const lw = r.w - best.pw, lh = r.h - best.ph;
+    let a, b;
+    if (lw < lh) { a = { x: r.x + best.pw, y: r.y, w: lw, h: best.ph }; b = { x: r.x, y: r.y + best.ph, w: r.w, h: lh }; }
+    else { a = { x: r.x + best.pw, y: r.y, w: lw, h: r.h }; b = { x: r.x, y: r.y + best.ph, w: best.pw, h: lh }; }
+    s.free.splice(best.ri, 1, ...[a, b].filter(q => q.w > kerf && q.h > kerf));
+  }
+  return { sheets, bad };
+}
+
+function expand(pieces) {
+  const out = [];
+  pieces.forEach(p => { for (let i = 0; i < Math.max(0, Math.floor(p.cant)); i++) out.push({ nombre: p.nombre || 'Pieza', largo: num(p.largo), ancho: num(p.ancho) }); });
+  return out;
+}
+
+function groupCuts(list, key) {
+  const g = new Map();
+  list.forEach(c => { const k = key(c); g.set(k, (g.get(k) || 0) + 1); });
+  return [...g.entries()];
+}
+
+function barSVG(bar, stock, kerf) {
+  const H = 60; let x = 0; let parts = '';
+  bar.cuts.forEach(c => {
+    parts += `<rect x="${x}" y="0" width="${c.largo}" height="${H}" fill="var(--piece)" stroke="var(--piece-line)" stroke-width="3"/>`;
+    if (c.largo > 260) parts += `<text x="${x + c.largo / 2}" y="${H / 2 + 12}" font-size="34" text-anchor="middle">${fmt(c.largo)}</text>`;
+    x += c.largo + kerf;
+  });
+  return `<svg viewBox="-2 -2 ${stock + 4} ${H + 4}" role="img" aria-label="Barra de ${fmt(stock)} mm"><rect x="0" y="0" width="${stock}" height="${H}" fill="var(--waste)"/>${parts}</svg>`;
+}
+
+function sheetSVG(s, W, H) {
+  let parts = '';
+  s.placed.forEach(p => {
+    parts += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="var(--piece)" stroke="var(--piece-line)" stroke-width="5"/>`;
+    const fs = Math.max(28, Math.min(70, Math.min(p.w, p.h) / 5));
+    if (p.w > 240 && p.h > 140) {
+      parts += `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2 - fs * 0.15}" font-size="${fs}" text-anchor="middle" font-weight="600">${esc(p.nombre)}</text>`;
+      parts += `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2 + fs * 1.05}" font-size="${fs * 0.8}" text-anchor="middle">${fmt(p.rot ? p.ancho : p.largo)}×${fmt(p.rot ? p.largo : p.ancho)}${p.rot ? ' ↻' : ''}</text>`;
+    }
+  });
+  return `<svg viewBox="-4 -4 ${W + 8} ${H + 8}" role="img" aria-label="Tablero de ${fmt(W)} por ${fmt(H)} mm"><rect x="0" y="0" width="${W}" height="${H}" fill="var(--waste)" stroke="var(--line)" stroke-width="4"/>${parts}</svg>`;
+}
+
+let shopText = '';
+function compute() {
+  const kerf = num(state.kerf);
+  const alerts = []; let shop = []; let plans = ''; const compras = [];
+  let nPieces = 0, nBars = 0, nSheets = 0, cost = 0, priced = true, anyCost = false;
+
+  state.mats.forEach(m => {
+    const items = expand(state.pieces.filter(p => p.mat === m.id));
+    if (!items.length) return;
+    syncDims(m);
+    const of = ofertaActiva(m);
+    const price = of ? of.precio : (m.precio === '' || m.precio == null ? null : num(m.precio));
+    const tiendaTxt = of ? `  → ${of.tienda}: ${of.producto} (${eurTxt(of.precio)}/ud)` : '';
+    const comp = of ? { m, of, n: 0 } : null; if (comp) compras.push(comp);
+    if (m.tipo === 'unidad') {
+      nPieces += 0;
+      if (comp) comp.n = items.length;
+      shop.push(`${m.nombre}: ${items.length} ud.` + tiendaTxt);
+      if (price != null) { cost += price * items.length; anyCost = true; } else priced = false;
+      return;
+    }
+    nPieces += items.length;
+    if (m.tipo === 'barra') {
+      const L = num(m.largo);
+      if (!L) { alerts.push(`Pon el largo de la barra de «${m.nombre}».`); return; }
+      const { bars, bad } = packBars(items, L, kerf);
+      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)} mm) no cabe en una barra de ${fmt(L)} mm de ${m.nombre}.`));
+      if (!bars.length) return;
+      nBars += bars.length; if (comp) comp.n = bars.length;
+      if (price != null) { cost += price * bars.length; anyCost = true; } else priced = false;
+      shop.push(`${m.nombre} — barra de ${fmt(L)} mm: ${bars.length} ${bars.length === 1 ? 'barra' : 'barras'}` + tiendaTxt);
+      plans += `<div class="mat"><h3>${esc(m.nombre)} <span class="chip">${bars.length} × ${fmt(L)} mm</span></h3>`;
+      bars.forEach((b, i) => {
+        const desc = b.cuts.map(c => `${fmt(c.largo)}`).join(' + ');
+        shop.push(`  Barra ${i + 1}: ${desc}  (sobran ${fmt(b.sobra)})`);
+        plans += `<p class="sheetlabel mono">Barra ${i + 1}: ${b.cuts.map(c => esc(c.nombre) + ' ' + fmt(c.largo)).join(' · ')} — sobran ${fmt(b.sobra)} mm</p><div class="diag">${barSVG(b, L, kerf)}</div>`;
+      });
+      plans += `</div>`;
+    } else {
+      const W = num(m.largo), H = num(m.ancho);
+      if (!W || !H) { alerts.push(`Pon largo y ancho del tablero de «${m.nombre}».`); return; }
+      const miss = items.filter(i => !i.ancho);
+      miss.forEach(i => alerts.push(`A «${i.nombre}» le falta el ancho (es de tablero).`));
+      const { sheets, bad } = packSheets(items.filter(i => i.ancho && i.largo), W, H, kerf);
+      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)}×${fmt(b.ancho)}) no cabe en un tablero de ${fmt(W)}×${fmt(H)} de ${m.nombre}.`));
+      if (!sheets.length) return;
+      nSheets += sheets.length; if (comp) comp.n = sheets.length;
+      if (price != null) { cost += price * sheets.length; anyCost = true; } else priced = false;
+      const used = sheets.reduce((a, s) => a + s.placed.reduce((b, p) => b + p.w * p.h, 0), 0);
+      const pct = Math.round(100 * used / (W * H * sheets.length));
+      shop.push(`${m.nombre} — tablero de ${fmt(W)}×${fmt(H)} mm: ${sheets.length} ${sheets.length === 1 ? 'tablero' : 'tableros'}` + tiendaTxt);
+      plans += `<div class="mat"><h3>${esc(m.nombre)} <span class="chip">${sheets.length} × ${fmt(W)}×${fmt(H)}</span><span class="chip ${pct >= 60 ? 'good' : ''}">aprovechado ${pct}%</span></h3>`;
+      sheets.forEach((s, i) => {
+        const g = groupCuts(s.placed, p => `${fmt(p.largo)} × ${fmt(p.ancho)}  (${p.nombre})`);
+        shop.push(`  Tablero ${i + 1}: ` + g.map(([k, n]) => `${n} × ${k}`).join(', '));
+        plans += `<p class="sheetlabel">Tablero ${i + 1}</p><div class="diag">${sheetSVG(s, W, H)}</div>`;
+      });
+      plans += `</div>`;
+    }
+  });
+
+  shop.unshift(`Corte de sierra: ${fmt(kerf)} mm. Medidas en mm.`, '');
+  shopText = shop.join('\n');
+  $('#shop').textContent = shopText;
+  const shown = compras.filter(c => c.n > 0);
+  $('#buy').innerHTML = shown.length ? `<table class="prev"><thead><tr><th>Material</th><th>Tienda y producto</th><th style="text-align:right">Ud.</th><th style="text-align:right">Total</th></tr></thead><tbody>` +
+    shown.map(c => `<tr><td>${esc(c.m.nombre)}</td><td><a href="${esc(c.of.url)}" target="_blank" rel="noopener">${esc(c.of.tienda)} · ${esc(c.of.producto)}</a>${c.of.precio_anterior ? `<div class="hint">Antes ${eurTxt(c.of.precio_anterior)} ${c.of.precio < c.of.precio_anterior ? '· ha bajado' : '· ha subido'}</div>` : ''}${c.of.estado && c.of.estado.startsWith('fallo') ? `<div class="hint warn">No se pudo comprobar la última vez; el precio puede estar desactualizado.</div>` : ''}${c.of.nota ? `<div class="hint">${esc(c.of.nota)}</div>` : ''}${c.of.aviso ? `<div class="hint warn">${esc(c.of.aviso)}</div>` : ''}</td><td class="n">${c.n} × ${eurTxt(c.of.precio)}</td><td class="n">${eurTxt(c.n * c.of.precio)}</td></tr>`).join('') +
+    `</tbody></table><p class="hint">Precios comprobados automáticamente cada lunes en las webs de las tiendas (última vez: ${PRECIOS_FECHA}), con IVA. Pueden variar según la tienda; confírmalos antes de comprar.</p>` : '<p class="hint">Ningún material tiene tienda asignada.</p>';
+  $('#plans').innerHTML = plans || '<p class="hint">Añade piezas para ver los planos de corte.</p>';
+  if (tempAlert) alerts.unshift(tempAlert);
+  $('#alerts').innerHTML = alerts.map(a => `<div class="alert">${esc(a)}</div>`).join('');
+  $('#tiles').innerHTML = [
+    [fmt(nPieces), 'piezas a cortar'],
+    [fmt(nBars), nBars === 1 ? 'barra' : 'barras'],
+    [fmt(nSheets), nSheets === 1 ? 'tablero' : 'tableros'],
+    [anyCost ? eur(cost) + (priced ? '' : '*') : '—', anyCost && !priced ? 'coste (*faltan precios)' : 'coste estimado'],
+  ].map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+}
+
+/* ---------- Plantilla: banco de trabajo ---------- */
+const TPL_FIELDS = [
+  ['t', 'Banco (mm)'],
+  ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total, con ruedas'], ['vuelo', 'Vuelo de la tapa por lado'],
+  ['t', 'Ruedas y madera maciza (mm)'],
+  ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'],
+  ['t', 'Tableros'],
+  ['tapaMat', 'Tapa: material'], ['tapaG', 'Tapa: grosor (mm)'], ['balda', 'Balda inferior'], ['baldaMat', 'Balda: material'], ['baldaG', 'Balda: grosor (mm)'],
+];
+if (!state.tpl) state.tpl = { ...TPL_DEFAULT };
+
+function benchPieces(t) {
+  const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), g = num(t.travG), tg = num(t.tapaG);
+  const FL = L - 2 * v, FW = A - 2 * v;
+  const nI = Math.max(0, Math.floor(num(t.nInter)));
+  const errors = [];
+  const pata = H - r - tg, largo = FL - 2 * P, corto = FW - 2 * P, inter = FW - 2 * g;
+  if (pata <= 0) errors.push('El alto no da para las patas: revisa alto, rueda y grosor de la tapa.');
+  if (largo <= 0 || corto <= 0 || inter <= 0) errors.push('La tapa es demasiado pequeña para ese vuelo y esas secciones.');
+  const m = {
+    pata: `Pino ${fmt(P)}×${fmt(P)}`,
+    trav: `Pino ${fmt(g)}×${fmt(num(t.travC))}`,
+    tapa: `${t.tapaMat || 'Tablero'} ${fmt(tg)} mm`,
+    balda: `${t.baldaMat || 'Tablero'} ${fmt(num(t.baldaG))} mm`,
+  };
+  const list = [
+    { nombre: 'Pata', mk: 'pata', largo: pata, ancho: 0, cant: 4 },
+    { nombre: 'Travesaño largo', mk: 'trav', largo, ancho: 0, cant: 4 },
+    { nombre: 'Travesaño corto extremo', mk: 'trav', largo: corto, ancho: 0, cant: 4 },
+  ];
+  if (nI) list.push({ nombre: 'Travesaño intermedio', mk: 'trav', largo: inter, ancho: 0, cant: nI });
+  list.push({ nombre: 'Tapa', mk: 'tapa', largo: L, ancho: A, cant: 1 });
+  if (t.balda === 'si') list.push({ nombre: 'Balda', mk: 'balda', largo, ancho: FW, cant: 1 });
+  list.push({ nombre: 'Rueda', mk: 'rueda', largo: 0, ancho: 0, cant: 4 });
+  m.rueda = 'Rueda giratoria con freno';
+  return { list, m, errors, frame: { FL, FW } };
+}
+
+function renderTpl() {
+  const t = state.tpl;
+  $('#tpl-fields').innerHTML = TPL_FIELDS.map(([k, label]) => {
+    if (k === 't') return `<div class="fieldset-title">${label}</div>`;
+    if (k === 'balda') return `<div><label class="small" for="tp-${k}">${label}</label><select id="tp-${k}" data-k="${k}"><option value="si" ${t[k] === 'si' ? 'selected' : ''}>Sí</option><option value="no" ${t[k] === 'no' ? 'selected' : ''}>No</option></select></div>`;
+    const text = k === 'tapaMat' || k === 'baldaMat';
+    return `<div><label class="small" for="tp-${k}">${label}</label><input id="tp-${k}" data-k="${k}" ${text ? '' : 'type="number" min="0" inputmode="numeric"'} value="${esc(t[k])}"></div>`;
+  }).join('');
+  renderTplPreview();
+}
+
+function renderTplPreview() {
+  const { list, m, errors } = benchPieces(state.tpl);
+  $('#tpl-preview').innerHTML = (errors.length ? errors.map(e => `<div class="alert">${esc(e)}</div>`).join('') : '') +
+    `<table class="prev"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th></tr></thead><tbody>` +
+    list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${p.mk === 'rueda' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
+    `</tbody></table>`;
+}
+
+function applyTpl() {
+  const { list, m, errors } = benchPieces(state.tpl);
+  if (errors.length) { showAlert('Corrige la plantilla antes de generar las piezas.'); return; }
+  const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
+  const ids = {};
+  Object.entries(m).forEach(([mk, nombre]) => {
+    if (mk === 'balda' && state.tpl.balda !== 'si') return;
+    let mat = state.mats.find(x => x.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
+    if (!mat) {
+      const tipo = tipos[mk];
+      mat = { id: nid(), rol: mk, oferta: 'auto', nombre, tipo, largo: tipo === 'barra' ? 2400 : tipo === 'tablero' ? 2440 : 0, ancho: tipo === 'tablero' ? 1220 : 0, precio: '' };
+      state.mats.push(mat);
+    }
+    if (!mat.rol) { mat.rol = mk; if (mat.oferta == null) mat.oferta = 'auto'; }
+    ids[mk] = mat.id;
+  });
+  state.pieces = list.map(p => ({ id: nid(), nombre: p.nombre, mat: ids[p.mk], largo: p.largo, ancho: p.ancho, cant: p.cant }));
+  save(); renderMats(); renderPieces(); compute();
+  const b = $('#tpl-apply'); b.textContent = 'Piezas generadas ✓'; setTimeout(() => b.textContent = 'Generar piezas', 2000);
+}
+
+$('#tpl-fields').addEventListener('input', (e) => {
+  const k = e.target.dataset.k; if (!k) return;
+  state.tpl[k] = (k === 'tapaMat' || k === 'baldaMat' || k === 'balda') ? e.target.value : num(e.target.value);
+  save(); renderTplPreview();
+});
+$('#tpl-apply').addEventListener('click', applyTpl);
+
+/* ---------- Arranque ---------- */
+function renderAll() { $('#kerf').value = state.kerf; renderTpl(); renderPieces(); renderMats(); compute(); }
+bindEditor('#pieces', 'pieces', renderPieces);
+bindEditor('#mats', 'mats', () => { renderMats(); renderPieces(); });
+$('#kerf').addEventListener('input', e => { state.kerf = num(e.target.value); save(); compute(); });
+$('#add-piece').addEventListener('click', () => {
+  const mat = state.mats.find(m => m.tipo !== 'unidad') || state.mats[0];
+  state.pieces.push({ id: nid(), nombre: 'Nueva pieza', mat: mat ? mat.id : '', largo: 500, ancho: mat && mat.tipo === 'tablero' ? 300 : 0, cant: 1 });
+  save(); renderPieces(); compute();
+  const last = document.querySelector('#pieces .row:last-child input'); if (last) { last.focus(); last.select(); }
+});
+$('#add-mat').addEventListener('click', () => {
+  state.mats.push({ id: nid(), nombre: 'Nuevo material', tipo: 'barra', largo: 2400, ancho: 0, precio: '' });
+  save(); renderMats(); renderPieces(); compute();
+});
+let confirmReset = false;
+$('#btn-reset').addEventListener('click', (e) => {
+  if (!confirmReset) { confirmReset = true; e.target.textContent = 'Pulsa otra vez: se borrará lo que has metido'; setTimeout(() => { confirmReset = false; e.target.textContent = 'Cargar ejemplo: banco 160×90×110'; }, 3500); return; }
+  confirmReset = false; e.target.textContent = 'Cargar ejemplo: banco 160×90×110';
+  state = example(); save(); renderAll();
+});
+$('#copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(shopText); $('#copied').textContent = 'Copiada'; }
+  catch (e) {
+    const r = document.createRange(); r.selectNodeContents($('#shop'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    $('#copied').textContent = 'Seleccionada: cópiala con el menú';
+  }
+  setTimeout(() => $('#copied').textContent = '', 2500);
+});
+renderAll();
+// Precios actualizados por la tarea semanal (prices.json en el mismo repositorio).
+fetch('prices.json', { cache: 'no-cache' })
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(d => {
+    if (!d || !d.productos) return;
+    CATALOGO = d.productos;
+    if (d.actualizado) {
+      const f = new Date(d.actualizado + 'T12:00:00');
+      PRECIOS_FECHA = isNaN(f) ? d.actualizado : f.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    renderMats(); compute();
+  })
+  .catch(() => { /* sin conexión o sin prices.json: se usan los precios incluidos en la página */ });
+</script>
+</body>
+</html>
