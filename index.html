@@ -481,7 +481,7 @@ function compute() {
   const shown = compras.filter(c => c.n > 0);
   $('#buy').innerHTML = shown.length ? `<table class="prev"><thead><tr><th>Material</th><th>Tienda y producto</th><th style="text-align:right">Ud.</th><th style="text-align:right">Total</th></tr></thead><tbody>` +
     shown.map(c => `<tr><td>${esc(c.m.nombre)}</td><td><a href="${esc(c.of.url)}" target="_blank" rel="noopener">${esc(c.of.tienda)} · ${esc(c.of.producto)}</a>${c.of.precio_anterior ? `<div class="hint">Antes ${eurTxt(c.of.precio_anterior)} ${c.of.precio < c.of.precio_anterior ? '· ha bajado' : '· ha subido'}</div>` : ''}${c.of.estado && c.of.estado.startsWith('fallo') ? `<div class="hint warn">No se pudo comprobar la última vez; el precio puede estar desactualizado.</div>` : ''}${c.of.nota ? `<div class="hint">${esc(c.of.nota)}</div>` : ''}${c.of.aviso ? `<div class="hint warn">${esc(c.of.aviso)}</div>` : ''}</td><td class="n">${c.n} × ${eurTxt(c.of.precio)}</td><td class="n">${eurTxt(c.n * c.of.precio)}</td></tr>`).join('') +
-    `</tbody></table><p class="hint">Precios comprobados automáticamente cada lunes en las webs de las tiendas (última vez: ${PRECIOS_FECHA}), con IVA. Pueden variar según la tienda; confírmalos antes de comprar.</p>` : '<p class="hint">Ningún material tiene tienda asignada.</p>';
+    `</tbody></table><p class="hint">Precios revisados a mano en las webs de las tiendas (última vez: ${PRECIOS_FECHA}), con IVA. Pueden variar según la tienda; confírmalos antes de comprar.</p>` : '<p class="hint">Ningún material tiene tienda asignada.</p>';
   $('#plans').innerHTML = plans || '<p class="hint">Añade piezas para ver los planos de corte.</p>';
   if (tempAlert) alerts.unshift(tempAlert);
   $('#alerts').innerHTML = alerts.map(a => `<div class="alert">${esc(a)}</div>`).join('');
@@ -609,7 +609,7 @@ $('#copy').addEventListener('click', async () => {
   setTimeout(() => $('#copied').textContent = '', 2500);
 });
 renderAll();
-// Precios actualizados por la tarea semanal (prices.json en el mismo repositorio).
+// Precios revisados a mano (prices.json en el mismo repositorio).
 fetch('prices.json', { cache: 'no-cache' })
   .then(r => r.ok ? r.json() : Promise.reject(r.status))
   .then(d => {
