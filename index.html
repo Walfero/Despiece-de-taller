@@ -85,6 +85,8 @@ section.card[class*="t-"] input, section.card[class*="t-"] select, section.card[
   .mrow .f-price { grid-column: 3 / 5; }
 }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
+#buy, #montaje .montaje > div { overflow-x: auto; min-width: 0; }
+table.prev td a { overflow-wrap: anywhere; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .tile .v { font: 700 24px/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -127,10 +129,39 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .plano .pz2 { fill: color-mix(in srgb, var(--piece) 45%, var(--surface)); stroke: var(--piece-line); stroke-width: 1; }
 .plano .oc { fill: none; stroke: var(--muted); stroke-width: .9; stroke-dasharray: 4 3; }
 .plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
+.plano .veta { stroke: var(--piece-line); stroke-width: .7; opacity: .45; }
+.plano .canto { stroke: color-mix(in srgb, var(--t-pizarra) 75%, var(--ink)); stroke-width: 3.5; stroke-linecap: square; }
+.io { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--line); }
+#share-url { font: 12px var(--font-mono); }
+td.ok { width: 18px; color: var(--muted); }
+.montaje { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
+@media (max-width: 760px) { .montaje { grid-template-columns: minmax(0, 1fr); } }
+.montaje h3 { margin-bottom: 6px; }
+ol.pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.pzctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 4px; }
+.pzctrl .chk { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.pzctrl .chk input { width: auto; }
+.pzctrl select { margin-top: 2px; padding: 4px 6px; }
+@media print { .pzctrl { display: none; } }
 .plano .cota { stroke: var(--muted); stroke-width: .8; fill: none; }
 .plano text { fill: var(--ink); font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; }
 .plano text.t { fill: var(--muted); font: 600 11px var(--font-body); letter-spacing: .04em; }
 @media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --bg: #fff; --surface: #fff; --ink: #1c2422; --muted: #5d6965; --line: #c9d1ce; --accent: #c27a12; --piece: #f3d9a4; --piece-line: #a8690e; --waste: #eceff0; --bad: #b3261e; color-scheme: light;
+  }
+  section.card { break-inside: auto; }
+  pre.shop { max-height: none; overflow: visible; }
+  .diag, .mat > div { break-inside: avoid; }
+  body.hoja-taller { background: #fff; font-size: 12px; }
+  body.hoja-taller header, body.hoja-taller .projbar, body.hoja-taller main > .col:first-of-type, body.hoja-taller #print-planos, body.hoja-taller #copy, body.hoja-taller .pzctrl { display: none !important; }
+  body.hoja-taller main { display: block; padding: 0; }
+  body.hoja-taller main > .col { display: block; }
+  body.hoja-taller section.card { margin-bottom: 12px; padding: 10px; }
+  body.hoja-taller #hoja { display: flex !important; }
+  body.hoja-taller .pzcard, body.hoja-taller .vistas > div, body.hoja-taller .montaje > div { break-inside: avoid; }
+  body.hoja-taller #planos-card { break-before: page; }
+  body.hoja-taller main > .col:last-of-type > section:first-child { display: none; }
   body.solo-planos { background: #fff; }
   body.solo-planos header, body.solo-planos main > :not(.planos-card), body.solo-planos #print-planos { display: none !important; }
   body.solo-planos main { display: block; padding: 0; }
@@ -148,10 +179,12 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 </header>
 
 <main>
+  <section class="card hoja" id="hoja" hidden></section>
   <section class="card t-gris projbar" aria-label="Proyectos">
     <div class="head"><h2>Proyecto</h2>
       <div class="btns">
         <button class="primary" id="proj-new-btn" type="button" aria-expanded="false" aria-controls="proj-new">+ Nuevo</button>
+        <button id="hoja-btn" type="button" title="Abre la impresión: elige «Guardar como PDF»">Hoja de taller (PDF)</button>
         <button id="proj-dup" type="button">Duplicar</button>
         <button id="proj-del" type="button">Borrar</button>
       </div>
@@ -166,7 +199,18 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
       <button class="primary" id="np-create" type="button">Crear</button>
       <button id="np-cancel" type="button">Cancelar</button>
     </div>
-    <p class="hint">Cada proyecto guarda sus medidas, piezas, materiales y precios en este navegador.</p>
+    <div class="io">
+      <div class="btns">
+        <button id="exp-uno" type="button">Descargar proyecto</button>
+        <button id="exp-todo" type="button">Copia de todos</button>
+        <button id="imp-btn" type="button">Abrir archivo…</button>
+        <button id="share-btn" type="button">Compartir enlace</button>
+        <input type="file" id="imp-file" accept=".json,application/json" hidden>
+        <span class="copied" id="io-msg" aria-live="polite"></span>
+      </div>
+      <input id="share-url" readonly hidden aria-label="Enlace del proyecto">
+    </div>
+    <p class="hint">Cada proyecto guarda sus medidas, piezas, materiales y precios en este navegador. Descárgalo para tener una copia o pasarlo a otro móvil u ordenador; el enlace lleva el proyecto dentro y abre una copia.</p>
   </section>
 
   <div class="col">
@@ -226,11 +270,17 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
     <div id="plano-mueble"></div>
     <div id="plano-piezas"></div>
   </section>
+
+  <section class="card t-salvia planos-card" id="montaje-card">
+    <h2>Montaje y tornillería</h2>
+    <p class="hint">Según las medidas de la plantilla. Si has cambiado piezas a mano, revísalo.</p>
+    <div id="montaje"></div>
+  </section>
 </main>
 
 <script>
 const KEY = 'despiece-taller-v1';
-const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100, pata: 70, travG: 45, travC: 70, nInter: 2, tapaMat: 'Contrachapado', tapaG: 18, balda: 'si', baldaMat: 'OSB', baldaG: 18 };
+const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100, pata: 70, travG: 45, travC: 70, nInter: 2, alturaBajo: 270, tapaMat: 'Contrachapado', tapaG: 18, balda: 'si', baldaMat: 'OSB', baldaG: 18 };
 let uid = 1; const nid = () => 'i' + (Date.now().toString(36)) + (uid++);
 
 /* Precios consultados en las webs de las tiendas (IVA incluido, península). Cambian según tienda y día. */
@@ -458,7 +508,7 @@ function packSheets(items, W, H, kerf) {
   const sheets = []; const bad = [];
   const newSheet = () => { const s = { free: [{ x: 0, y: 0, w: W + kerf, h: H + kerf }], placed: [] }; sheets.push(s); return s; };
   for (const it of sorted) {
-    const opts = [[it.largo, it.ancho, false], [it.ancho, it.largo, true]];
+    const opts = it.veta ? [[it.largo, it.ancho, false]] : [[it.largo, it.ancho, false], [it.ancho, it.largo, true]];
     if (!opts.some(([w, h]) => w <= W && h <= H)) { bad.push(it); continue; }
     let best = null;
     const tryIn = (s, si) => s.free.forEach((r, ri) => opts.forEach(([w, h, rot]) => {
@@ -483,7 +533,7 @@ function packSheets(items, W, H, kerf) {
 
 function expand(pieces) {
   const out = [];
-  pieces.forEach(p => { for (let i = 0; i < Math.max(0, Math.floor(p.cant)); i++) out.push({ nombre: p.nombre || 'Pieza', largo: num(p.largo), ancho: num(p.ancho) }); });
+  pieces.forEach(p => { for (let i = 0; i < Math.max(0, Math.floor(p.cant)); i++) out.push({ nombre: p.nombre || 'Pieza', largo: num(p.largo), ancho: num(p.ancho), veta: !!p.veta }); });
   return out;
 }
 
@@ -560,23 +610,28 @@ function compute() {
       const miss = items.filter(i => !i.ancho);
       miss.forEach(i => alerts.push(`A «${i.nombre}» le falta el ancho (es de tablero).`));
       const { sheets, bad } = packSheets(items.filter(i => i.ancho && i.largo), W, H, kerf);
-      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)}×${fmt(b.ancho)}) no cabe en un tablero de ${fmt(W)}×${fmt(H)} de ${m.nombre}.`));
+      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)}×${fmt(b.ancho)}) no cabe en un tablero de ${fmt(W)}×${fmt(H)} de ${m.nombre}${b.veta ? ' con la veta a lo largo' : ''}.`));
       if (!sheets.length) return;
       nSheets += sheets.length; if (comp) comp.n = sheets.length;
       if (price != null) { cost += price * sheets.length; anyCost = true; } else priced = false;
       const used = sheets.reduce((a, s) => a + s.placed.reduce((b, p) => b + p.w * p.h, 0), 0);
       const pct = Math.round(100 * used / (W * H * sheets.length));
       shop.push(`${m.nombre} — tablero de ${fmt(W)}×${fmt(H)} mm: ${sheets.length} ${sheets.length === 1 ? 'tablero' : 'tableros'}` + tiendaTxt);
+      const canto = state.pieces.filter(p => p.mat === m.id).reduce((a, p) => a + (num(p.cantoL) * num(p.largo) + num(p.cantoA) * num(p.ancho)) * Math.max(0, Math.floor(p.cant)), 0);
+      const cantoTxt = canto > 0 && ((g) => (`  Canto${g ? ` para ${fmt(g)} mm (cinta de ${fmt(g <= 20 ? 22 : g + 4)} mm de ancho)` : ''}: ${(canto / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} m; compra un 10 % más para recortes.`))(grosorDe(m.nombre));
       plans += `<div class="mat"><h3>${esc(m.nombre)} <span class="chip">${sheets.length} × ${fmt(W)}×${fmt(H)}</span><span class="chip ${pct >= 60 ? 'good' : ''}">aprovechado ${pct}%</span></h3>`;
       sheets.forEach((s, i) => {
         const g = groupCuts(s.placed, p => `${fmt(p.largo)} × ${fmt(p.ancho)}  (${p.nombre})`);
         shop.push(`  Tablero ${i + 1}: ` + g.map(([k, n]) => `${n} × ${k}`).join(', '));
         plans += `<p class="sheetlabel">Tablero ${i + 1}</p><div class="diag">${sheetSVG(s, W, H)}</div>`;
       });
+      if (cantoTxt) shop.push(cantoTxt);
       plans += `</div>`;
     }
   });
 
+  const mont = montajeDe(state.tipo, state.tpl || {});
+  if (mont && mont.torn.length) shop.push('', 'Tornillería (aprox., con un 10 % de más; según la plantilla):', ...mont.torn.map(x => `  ${x.medida}: ${fmt(x.n)} ud. (${x.uso})`));
   shop.unshift(`Corte de sierra: ${fmt(kerf)} mm. Medidas en mm.`, '');
   shopText = shop.join('\n');
   $('#shop').textContent = shopText;
@@ -609,6 +664,9 @@ function benchPieces(t) {
   if (pata <= 0) errors.push('El alto no da para las patas: revisa alto, rueda y grosor de la tapa.');
   if (largo <= 0 || corto <= 0 || inter <= 0) errors.push('La tapa es demasiado pequeña para ese vuelo y esas secciones.');
   if (H > 1000) avisos.push('Más de 100 cm de alto es mucho para trabajar de pie; lo habitual son 85-95 cm.');
+  const tc = num(t.travC), ab = alturaBajoDe(t), info = [];
+  if (pata > 0 && (ab - tc < r || ab > H - tg - tc)) errors.push(`Los travesaños bajos tienen que ir entre ${fmt(r + tc)} y ${fmt(H - tg - tc)} mm del suelo (cara de arriba).`);
+  else if (t.balda === 'si') info.push(`Balda a ${fmt(ab + num(t.baldaG))} mm del suelo (cara de arriba), apoyada sobre los travesaños bajos.`);
   const m = {
     pata: `Pino ${fmt(P)}×${fmt(P)}`,
     trav: `Pino ${fmt(g)}×${fmt(num(t.travC))}`,
@@ -627,29 +685,49 @@ function benchPieces(t) {
   list.push({ nombre: 'Rueda', mk: 'rueda', largo: 0, ancho: 0, cant: 4 });
   const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
   const roles = rolesDe(m, { pata: 'pata', trav: 'trav', tapa: 'tapa', balda: 'balda', rueda: 'rueda' });
-  return { list, m, tipos, roles, errors, avisos, info: [] };
+  return { list, m, tipos, roles, errors, avisos, info };
 }
+// Proyectos guardados antes de existir el campo: 10 cm entre el pie de la pata y el travesaño.
+const alturaBajoDe = (t) => (t.alturaBajo === '' || t.alturaBajo == null) ? num(t.rueda) + 100 + num(t.travC) : num(t.alturaBajo);
 
 function shelfPieces(t) {
   const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), r = num(t.retr);
-  const n = Math.max(0, Math.floor(num(t.nBaldas)));
-  const Wi = W - 2 * g, errors = [], avisos = [], info = [];
+  const Wi = W - 2 * g, avisos = [], info = [];
+  const { n, huecos, errors, libre } = baldasDe(t);
   if (Wi <= 0 || D <= 0) errors.push('El ancho no da para dos laterales de ese grosor.');
-  const hueco = (H - z - 2 * g - n * g) / (n + 1);
-  if (hueco <= 0) errors.push('No caben tantas baldas en ese alto.');
   if (r >= D) errors.push('El retranqueo de las baldas es mayor que el fondo.');
   if (Wi > 800 && g <= 19) avisos.push('Con más de 80 cm de luz, las baldas de 18 mm se comban con peso (libros). Añade un lateral central o sube el grosor.');
   if (H > 1500 && D < 350) avisos.push('Es alta y poco profunda: fíjala a la pared.');
-  if (hueco > 0) info.push(`Hueco libre entre baldas, repartidas a partes iguales: ${fmt(hueco)} mm.`);
+  if (!errors.length) info.push(libre ? `Hueco libre entre baldas, repartidas a partes iguales: ${fmt(huecos[0])} mm.` : `Huecos libres, de abajo arriba: ${huecos.map(fmt).join(', ')} mm.`);
   const m = { tablero: `${t.mat || 'Tablero'} ${fmt(g)} mm`, trasera: `${t.traseraMat || 'Tablero'} ${fmt(num(t.traseraG))} mm` };
   const list = [
-    { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2 },
-    { nombre: 'Techo y suelo', mk: 'tablero', largo: Wi, ancho: D, cant: 2 },
+    { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Techo y suelo', mk: 'tablero', largo: Wi, ancho: D, cant: 2, cantoL: 1 },
   ];
-  if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n });
+  if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n, cantoL: 1 });
   if (z > 0) list.push({ nombre: 'Zócalo', mk: 'tablero', largo: Wi, ancho: z, cant: 1 });
   if (t.trasera === 'si') list.push({ nombre: 'Trasera', mk: 'trasera', largo: H, ancho: W, cant: 1 });
   return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: rolesDe(m), errors, avisos, info };
+}
+
+// Baldas de la estantería: alturas escritas a mano (cara de arriba, desde el suelo) o repartidas a partes iguales.
+function baldasDe(t) {
+  const H = num(t.alto), g = num(t.grosor), z = num(t.zocalo), errors = [];
+  const suelo = z + g, techo = H - g; // cara de arriba del suelo y cara de abajo del techo
+  const escritas = String(t.alturas || '').split(/[;,\s]+/).map(num).filter(x => x > 0).sort((a, b) => a - b);
+  let tops;
+  if (escritas.length) {
+    tops = escritas;
+    if (tops[0] - g < suelo || tops[tops.length - 1] > techo) errors.push(`Las baldas tienen que ir entre ${fmt(suelo + g)} y ${fmt(techo)} mm del suelo (cara de arriba).`);
+    else if (tops.some((y, i) => i && y - g < tops[i - 1])) errors.push('Hay dos baldas que se pisan: sepáralas al menos el grosor del tablero.');
+  } else {
+    const n = Math.max(0, Math.floor(num(t.nBaldas))), h = (techo - suelo - n * g) / (n + 1);
+    if (h <= 0) errors.push('No caben tantas baldas en ese alto.');
+    tops = [...Array(n)].map((_, i) => suelo + (i + 1) * (h + g));
+  }
+  const bordes = [suelo, ...tops, techo + g];
+  const huecos = bordes.slice(1).map((b, i) => b - g - bordes[i]);
+  return { n: tops.length, tops, huecos, errors, libre: !escritas.length };
 }
 
 function tablePieces(t) {
@@ -691,11 +769,11 @@ function drawerPieces(t) {
     tirador: 'Tirador',
   };
   const list = [
-    { nombre: 'Lateral', mk: 'cuerpo', largo: H, ancho: D, cant: 2 },
-    { nombre: 'Techo y base', mk: 'cuerpo', largo: Wi, ancho: D, cant: 2 },
-    { nombre: 'Frente de cajón', mk: 'cuerpo', largo: fa, ancho: fh, cant: n },
-    { nombre: 'Lateral de cajón', mk: 'cuerpo', largo: G, ancho: bh, cant: 2 * n },
-    { nombre: 'Delantera y trasera de cajón', mk: 'cuerpo', largo: bw - 2 * g, ancho: bh, cant: 2 * n },
+    { nombre: 'Lateral', mk: 'cuerpo', largo: H, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Techo y base', mk: 'cuerpo', largo: Wi, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Frente de cajón', mk: 'cuerpo', largo: fa, ancho: fh, cant: n, cantoL: 2, cantoA: 2 },
+    { nombre: 'Lateral de cajón', mk: 'cuerpo', largo: G, ancho: bh, cant: 2 * n, cantoL: 1 },
+    { nombre: 'Delantera y trasera de cajón', mk: 'cuerpo', largo: bw - 2 * g, ancho: bh, cant: 2 * n, cantoL: 1 },
     { nombre: 'Trasera', mk: 'fondo', largo: H, ancho: W, cant: 1 },
     { nombre: 'Fondo de cajón', mk: 'fondo', largo: G, ancho: bw, cant: n },
     { nombre: 'Guías', mk: 'guias', largo: 0, ancho: 0, cant: n },
@@ -712,18 +790,18 @@ const TEMPLATES = {
       ['t', 'Banco (mm)'],
       ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total, con ruedas'], ['vuelo', 'Vuelo de la tapa por lado'],
       ['t', 'Ruedas y madera maciza (mm)'],
-      ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'],
+      ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'], ['alturaBajo', 'Travesaños bajos: altura del suelo a su cara de arriba'],
       ['t', 'Tableros'],
       ['tapaMat', 'Tapa: material', 'txt'], ['tapaG', 'Tapa: grosor (mm)'], ['balda', 'Balda inferior', SI_NO], ['baldaMat', 'Balda: material', 'txt'], ['baldaG', 'Balda: grosor (mm)'],
     ],
   },
   estanteria: {
     nombre: 'Estantería', build: shelfPieces,
-    defaults: { alto: 1800, ancho: 800, fondo: 300, grosor: 18, nBaldas: 4, zocalo: 70, retr: 0, mat: 'Melamina blanca', trasera: 'si', traseraMat: 'DM', traseraG: 3 },
+    defaults: { alto: 1800, ancho: 800, fondo: 300, grosor: 18, nBaldas: 4, alturas: '', zocalo: 70, retr: 0, mat: 'Melamina blanca', trasera: 'si', traseraMat: 'DM', traseraG: 3 },
     hint: 'Mueble de tablero: laterales enteros, techo, suelo y baldas fijas entre laterales; trasera clavada por detrás.',
     fields: [
       ['t', 'Estantería (mm)'],
-      ['alto', 'Alto total'], ['ancho', 'Ancho total'], ['fondo', 'Fondo'], ['nBaldas', 'Baldas intermedias'], ['zocalo', 'Alto del zócalo (0 = sin zócalo)'], ['retr', 'Retranqueo de las baldas'],
+      ['alto', 'Alto total'], ['ancho', 'Ancho total'], ['fondo', 'Fondo'], ['nBaldas', 'Baldas intermedias'], ['alturas', 'Alturas de las baldas desde el suelo (cara de arriba, separadas por comas; vacío = repartidas)', 'txt'], ['zocalo', 'Alto del zócalo (0 = sin zócalo)'], ['retr', 'Retranqueo de las baldas'],
       ['t', 'Tableros'],
       ['mat', 'Material', 'txt'], ['grosor', 'Grosor (mm)'], ['trasera', 'Trasera', SI_NO], ['traseraMat', 'Trasera: material', 'txt'], ['traseraG', 'Trasera: grosor (mm)'],
     ],
@@ -761,7 +839,7 @@ function fieldKind(T, k) { const f = T.fields.find(x => x[0] === k); return f ? 
 
 function renderTpl() {
   const T = TEMPLATES[state.tipo];
-  $('#tpl-card').hidden = !T; if (!T) { renderPlanoMueble(); return; }
+  $('#tpl-card').hidden = !T; if (!T) { renderPlanoMueble(); renderMontaje(); return; }
   state.tpl = { ...T.defaults, ...(state.tpl || {}) };
   $('#tpl-title').textContent = 'Plantilla: ' + T.nombre.toLowerCase();
   $('#tpl-hint').textContent = T.hint;
@@ -782,7 +860,7 @@ function renderTplPreview() {
     `<table class="prev"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th></tr></thead><tbody>` +
     list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${tipos[p.mk] === 'unidad' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
     `</tbody></table>` + (info.length ? `<ul class="tplinfo">${info.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
-  renderPlanoMueble();
+  renderPlanoMueble(); renderMontaje();
 }
 
 // Genera piezas y materiales de la plantilla en el proyecto p. Reutiliza materiales con el mismo nombre (y su precio).
@@ -802,7 +880,7 @@ function generate(p) {
     } else if (!mat.rol && roles[mk]) { mat.rol = roles[mk]; if (mat.oferta == null) mat.oferta = 'auto'; }
     ids[mk] = mat.id;
   });
-  p.pieces = list.map(x => ({ id: nid(), nombre: x.nombre, mat: ids[x.mk], largo: x.largo, ancho: x.ancho, cant: x.cant }));
+  p.pieces = list.map(x => ({ id: nid(), nombre: x.nombre, mat: ids[x.mk], largo: x.largo, ancho: x.ancho, cant: x.cant, cantoL: x.cantoL || 0, cantoA: x.cantoA || 0, veta: !!x.veta }));
   return true;
 }
 
@@ -874,12 +952,20 @@ function piezaSVG(p, m) {
     return { svg: dd.svg(`${p.nombre}: ${fmt(L)} mm`), meta: sec ? `Sección ${fmt(sec[0])} × ${fmt(sec[1])} mm` : '' };
   }
   const A = num(p.ancho); if (!L || !A) return '';
-  const d = lienzo(L, A, { maxW: 190, maxH: 150, pad: { b: 34, r: 34 } });
+  const d = lienzo(L, A, { maxW: 190, maxH: 150, pad: { b: 34, r: 34, l: 14, t: 14 } });
   d.rect(0, 0, L, A);
+  if (p.veta) for (let k = 1; k < 6; k++) { const y = A * k / 6; d.line(L * 0.06, y, L * (0.94 - 0.08 * (k % 2)), y, 'veta'); }
+  // Cantos: el primero de cada lado va abajo (largo) o a la izquierda (ancho)
+  const cl = num(p.cantoL), ca = num(p.cantoA);
+  if (cl >= 1) d.line(0, A, L, A, 'canto'); if (cl >= 2) d.line(0, 0, L, 0, 'canto');
+  if (ca >= 1) d.line(0, 0, 0, A, 'canto'); if (ca >= 2) d.line(L, 0, L, A, 'canto');
   d.cotaH(0, L, A, 22);
   d.cotaV(0, A, L, 12);
   const g = grosorDe(m.nombre);
-  return { svg: d.svg(`${p.nombre}: ${fmt(L)} por ${fmt(A)} mm`), meta: g ? `Grosor ${fmt(g)} mm` : '' };
+  const sel = (f, v, txt) => `<label class="small">${txt}<select data-pid="${esc(p.id)}" data-f="${f}" id="pz-${f}-${esc(p.id)}">${[0, 1, 2].map(k => `<option value="${k}" ${num(v) === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>`;
+  const ctrl = `<div class="pzctrl"><label class="chk"><input type="checkbox" data-pid="${esc(p.id)}" data-f="veta" id="pz-veta-${esc(p.id)}" ${p.veta ? 'checked' : ''}> Veta a lo largo (no se gira al cortar)</label>
+    ${sel('cantoL', cl, 'Cantos en el largo')}${sel('cantoA', ca, 'Cantos en el ancho')}</div>`;
+  return { svg: d.svg(`${p.nombre}: ${fmt(L)} por ${fmt(A)} mm`), meta: g ? `Grosor ${fmt(g)} mm` : '', ctrl };
 }
 
 function renderPlanoPiezas() {
@@ -889,10 +975,10 @@ function renderPlanoPiezas() {
     if (m.tipo === 'unidad') { unidades.push(`${fmt(p.cant)} × ${p.nombre || m.nombre}`); return; }
     const r = piezaSVG(p, m); if (!r) return;
     cards.push(`<div class="pzcard"><h3>${esc(p.nombre || 'Pieza')} <span class="chip">× ${fmt(p.cant)}</span></h3>
-      <div class="meta">${esc(m.nombre)}${r.meta ? ' · ' + esc(r.meta) : ''}</div><div class="plano">${r.svg}</div></div>`);
+      <div class="meta">${esc(m.nombre)}${r.meta ? ' · ' + esc(r.meta) : ''}</div><div class="plano">${r.svg}</div>${r.ctrl || ''}</div>`);
   });
   $('#plano-piezas').innerHTML = cards.length
-    ? `<h3 class="sheetlabel">Cada pieza, con sus medidas de corte en mm</h3><div class="pzgrid">${cards.join('')}</div>` + (unidades.length ? `<p class="hint">Herrajes y otros: ${esc(unidades.join(', '))}.</p>` : '')
+    ? `<h3 class="sheetlabel">Cada pieza, con sus medidas de corte en mm</h3><p class="hint">En los tableros, la línea gruesa azul marca los cantos que van canteados y las rayas finas, la dirección de la veta.</p><div class="pzgrid">${cards.join('')}</div>` + (unidades.length ? `<p class="hint">Herrajes y otros: ${esc(unidades.join(', '))}.</p>` : '')
     : '<p class="hint">Añade piezas para ver sus planos.</p>';
 }
 
@@ -910,32 +996,34 @@ function vistasMueble(tipo, t) {
   };
   if (tipo === 'banco') {
     const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), tc = num(t.travC), tg = num(t.tapaG), bg = num(t.baldaG);
-    const pata = H - r - tg, bajo = tg + pata - 100 - tc; // travesaño bajo a 10 cm del pie de la pata (orientativo)
+    const pata = H - r - tg, bajo = H - alturaBajoDe(t); // cara de arriba del travesaño bajo, medida desde arriba
     const lado = (d, W) => {
       const i = W - 2 * v - 2 * P;
       d.rect(0, 0, W, tg);
       d.rect(v, tg, P, pata); d.rect(W - v - P, tg, P, pata);
       d.rect(v + P, tg, i, tc); d.rect(v + P, bajo, i, tc);
-      if (t.balda === 'si') d.rect(v + P, bajo - bg, i, bg, 'pz2');
+      const bb = t.balda === 'si' ? bg : 0;
+      if (bb) d.rect(v + P, bajo - bb, i, bb, 'pz2');
       [v + P / 2, W - v - P / 2].forEach(cx => { const rr = Math.min(r * 0.38, 45); d.rect(cx - 15, H - r, 30, r - 2 * rr, 'pz2'); d.circle(cx, H - rr, rr, 'pz2'); });
       d.line(-25, H, W + 25, H);
       d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 42); d.cotaV(H - r, H, W, 14, fmt(r));
-      d.cotaV(tg + tc, bajo - (t.balda === 'si' ? bg : 0), 0, -14, fmt(bajo - (t.balda === 'si' ? bg : 0) - tg - tc));
+      d.cotaV(tg + tc, bajo - bb, 0, -14); d.cotaV(bajo - bb, H, 0, -14);
     };
     return v2(L, A, H, d => { lado(d, L); d.title(L / 2, 'FRENTE'); }, d => { lado(d, A); d.title(A / 2, 'LATERAL'); },
-      ['La altura de los travesaños bajos es orientativa (10 cm por encima del pie de la pata).']);
+      [`A la izquierda: hueco libre bajo los travesaños de arriba y altura de ${t.balda === 'si' ? 'la balda' : 'los travesaños bajos'} desde el suelo.`]);
   }
   if (tipo === 'estanteria') {
     const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), re = num(t.retr), tr = t.trasera === 'si' ? num(t.traseraG) : 0;
-    const n = Math.max(0, Math.floor(num(t.nBaldas))), hueco = (H - z - 2 * g - n * g) / (n + 1);
-    const ys = [...Array(n)].map((_, i) => g + hueco * (i + 1) + g * i);
+    const { tops, huecos } = baldasDe(t);
+    const ys = tops.map(a => H - a); // cara de arriba de cada balda, medida desde arriba
+    const bordes = [H - z - g, ...ys, g]; // de abajo arriba
     return v2(W, D + tr, H, d => {
       d.rect(0, 0, g, H); d.rect(W - g, 0, g, H); d.rect(g, 0, W - 2 * g, g); d.rect(g, H - z - g, W - 2 * g, g);
       if (z > 0) d.rect(g, H - z, W - 2 * g, z, 'pz2');
       ys.forEach(y => d.rect(g, y, W - 2 * g, g));
       d.line(-25, H, W + 25, H);
       d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 14);
-      if (hueco > 0) d.cotaV(g, g + hueco, 0, -14, fmt(hueco));
+      huecos.forEach((h, i) => { if (h > 0) d.cotaV(bordes[i] - h, bordes[i], 0, -14, fmt(h)); });
       if (z > 0) d.cotaV(H - z, H, 0, -14, fmt(z));
       d.title(W / 2, 'FRENTE');
     }, d => {
@@ -990,16 +1078,124 @@ function renderPlanoMueble() {
     (r.notas || []).map(n => `<p class="hint">${esc(n)}</p>`).join('');
 }
 
-function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); }
+$('#plano-piezas').addEventListener('change', (e) => {
+  const el = e.target, f = el.dataset.f, p = state.pieces.find(x => x.id === el.dataset.pid); if (!p || !f) return;
+  p[f] = f === 'veta' ? el.checked : num(el.value);
+  const id = el.id; save(); compute(); const nuevo = document.getElementById(id); if (nuevo) nuevo.focus();
+});
+function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); renderMontaje(); }
 let anchoPlanos = 0;
 window.addEventListener('resize', () => { const w = $('#plano-mueble').clientWidth; if (Math.abs(w - anchoPlanos) > 40) { anchoPlanos = w; renderPlanoMueble(); } });
-$('#print-planos').addEventListener('click', () => {
-  document.body.classList.add('solo-planos');
-  const quitar = () => { document.body.classList.remove('solo-planos'); window.removeEventListener('afterprint', quitar); };
+// Imprime con una clase en <body> que decide qué se ve (el resto lo oculta el CSS de impresión).
+function imprimir(clase) {
+  document.body.classList.add(clase);
+  const quitar = () => { document.body.classList.remove(clase); window.removeEventListener('afterprint', quitar); };
   window.addEventListener('afterprint', quitar);
   window.print();
   setTimeout(quitar, 1000);
-});
+}
+$('#print-planos').addEventListener('click', () => imprimir('solo-planos'));
+
+// Hoja de taller: portada con el despiece completo; detrás, compra, planos de corte, planos de piezas y montaje.
+function renderHoja() {
+  const T = TEMPLATES[state.tipo], hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  const medidas = T ? T.fields.filter(f => f[0] !== 't' && state.tpl[f[0]] !== '' && state.tpl[f[0]] != null)
+    .map(([k, label, kind]) => `${label}: ${Array.isArray(kind) ? (kind.find(o => o[0] === state.tpl[k]) || [, state.tpl[k]])[1] : (kind === 'txt' ? state.tpl[k] : fmt(num(state.tpl[k])))}`) : [];
+  const filas = state.pieces.map(p => {
+    const m = matById(p.mat) || {}; const tab = m.tipo === 'tablero';
+    const extra = [tab && p.veta ? 'veta a lo largo' : '', tab && num(p.cantoL) ? `canto ${fmt(num(p.cantoL))}× largo` : '', tab && num(p.cantoA) ? `canto ${fmt(num(p.cantoA))}× ancho` : ''].filter(Boolean).join(', ');
+    const med = m.tipo === 'unidad' ? '—' : fmt(num(p.largo)) + (tab ? ' × ' + fmt(num(p.ancho)) : '');
+    return `<tr><td class="ok">☐</td><td>${esc(p.nombre)}</td><td>${esc(m.nombre || '')}</td><td class="n">${med}</td><td class="n">${fmt(num(p.cant))}</td><td>${esc(extra)}</td></tr>`;
+  }).join('');
+  $('#hoja').innerHTML = `<div class="head"><h2>${esc(state.nombre || 'Proyecto')}</h2><span class="hint">${T ? esc(T.nombre) + ' · ' : ''}${hoy}</span></div>
+    ${medidas.length ? `<p class="hint">${esc(medidas.join(' · '))}</p>` : ''}
+    <div class="tiles">${$('#tiles').innerHTML}</div>
+    <h3>Despiece (medidas de corte en mm)</h3>
+    <table class="prev"><thead><tr><th></th><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th><th>Notas</th></tr></thead><tbody>${filas}</tbody></table>
+    <p class="hint">Marca ☐ cada pieza al cortarla. Corte de sierra: ${fmt(num(state.kerf))} mm.</p>`;
+}
+$('#hoja-btn').addEventListener('click', () => { renderHoja(); imprimir('hoja-taller'); });
+
+/* ---------- Montaje y tornillería ---------- */
+// Medidas habituales de tornillo (mm) y redondeos.
+const LARGOS_TORN = [10, 12, 16, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
+const tornHasta = (mm) => LARGOS_TORN.find(x => x >= mm) || 200;          // el primero que llega
+const tornMax = (mm) => [...LARGOS_TORN].reverse().find(x => x <= mm) || 10; // el más largo que no atraviesa
+const conMargen = (n) => Math.ceil(n * 1.1);
+
+function montajeDe(tipo, t) {
+  const T = TEMPLATES[tipo]; if (!T || T.build(t).errors.length) return null;
+  const pasos = [], torn = [], notas = [];
+  const add = (uso, medida, n) => { if (n > 0) torn.push({ uso, medida, n: conMargen(n) }); };
+  if (tipo === 'banco') {
+    const L = num(t.largo), A = num(t.ancho), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), g = num(t.travG), tc = num(t.travC), tg = num(t.tapaG), bg = num(t.baldaG);
+    const FL = L - 2 * v, FW = A - 2 * v, nI = Math.max(0, Math.floor(num(t.nInter))), ab = alturaBajoDe(t);
+    add('Travesaños a las patas (2 por unión, atravesando la pata)', `6 × ${tornHasta(P + 50)}`, 16 * 2);
+    if (nI) add('Travesaños intermedios (2 por extremo)', `6 × ${tornHasta(g + 50)}`, nI * 2 * 2);
+    add('Tapa a los travesaños (cada 25 cm)', `4 × ${tornHasta(tg + 25)}`, Math.ceil(2 * (FL + FW) / 250) + nI * Math.ceil(FW / 250));
+    if (t.balda === 'si') add('Balda a los travesaños bajos (cada 30 cm)', `4 × ${tornHasta(bg + 25)}`, Math.ceil(2 * (FL - 2 * P) / 300) + 2);
+    add('Ruedas (4 por rueda)', '6 × 40 (tirafondo)', 16);
+    pasos.push('Corta y lija todas las piezas y escribe a lápiz el nombre de cada una.',
+      `Monta los dos lados cortos: dos patas con un travesaño corto arriba, enrasado con la cabeza de las patas, y otro abajo con su cara de arriba a ${fmt(ab - r)} mm del pie de la pata. Encola y atornilla; comprueba la escuadra.`,
+      'Une los dos lados con los travesaños largos, a las mismas alturas. Los tornillos de los travesaños largos y cortos se cruzan dentro de la pata: desplaza unos 20 mm los de un lado. Mide las dos diagonales del bastidor: tienen que ser iguales.');
+    if (nI) pasos.push(`Reparte los ${nI} travesaños intermedios entre los largos de arriba, a ${fmt((FL - 2 * P - nI * g) / (nI + 1))} mm de hueco entre ellos.`);
+    pasos.push('Atornilla las ruedas al pie de las patas. Pon las de freno al menos en dos esquinas opuestas.');
+    if (t.balda === 'si') pasos.push('Apoya la balda sobre los travesaños bajos y atorníllala.');
+    pasos.push(`Coloca la tapa centrada, con ${fmt(v)} mm de vuelo por cada lado, y atorníllala desde arriba a los travesaños. Avellana para que las cabezas no sobresalgan.`);
+  } else if (tipo === 'estanteria') {
+    const H = num(t.alto), W = num(t.ancho), g = num(t.grosor), z = num(t.zocalo), tr = num(t.traseraG);
+    const { n, tops } = baldasDe(t);
+    add('Laterales a techo, suelo y baldas (3 por extremo)', `4 × ${tornHasta(g + 30)}`, 2 * (2 + n) * 3);
+    if (z > 0) add('Zócalo (2 por extremo)', `4 × ${tornHasta(g + 30)}`, 4);
+    if (t.trasera === 'si') add('Trasera (cada 15 cm por el borde y cada 20 cm en las baldas)', `3 × ${tornHasta(tr + 13)}`, Math.ceil(2 * (H + W) / 150) + n * Math.ceil(W / 200));
+    pasos.push('Corta y lija las piezas.',
+      n ? `Marca en la cara interior de los dos laterales, desde abajo, la cara de arriba de cada balda: ${tops.map(fmt).join(', ')} mm.` : 'Sin baldas intermedias: solo techo y suelo.',
+      `Atornilla el techo y el suelo a un lateral${z > 0 ? ` (el suelo, con su cara de abajo a ${fmt(z)} mm del borde)` : ''}, y luego el otro lateral. Pretaladra con broca de 3 mm y avellana.`);
+    if (z > 0) pasos.push('Mete el zócalo bajo el suelo, enrasado por delante, y atorníllalo a los laterales.');
+    if (n) pasos.push('Coloca las baldas en sus marcas y atorníllalas desde fuera de los laterales.');
+    if (t.trasera === 'si') pasos.push('Tumba el mueble boca abajo, mide las diagonales hasta que sean iguales y atornilla la trasera: es la que mantiene la escuadra.');
+    if (H > 1500) pasos.push('Fíjala a la pared con dos escuadras en la parte de arriba.');
+  } else if (tipo === 'mesa') {
+    const L = num(t.largo), A = num(t.ancho), v = num(t.vuelo), P = num(t.pata), tg = num(t.tapaG);
+    const fl = L - 2 * v - 2 * P, fcorto = A - 2 * v - 2 * P, esc = 2 * Math.ceil(fl / 400) + 2 * Math.ceil(fcorto / 400);
+    add('Faldones a las patas (2 por unión, atravesando la pata)', `6 × ${tornHasta(P + 50)}`, 8 * 2);
+    add(`Escuadras para sujetar la tapa (${esc} escuadras, 4 tornillos cada una)`, `3,5 × ${tornMax(tg - 3)}`, esc * 4);
+    pasos.push('Corta y lija las piezas.',
+      'Monta los dos lados cortos: dos patas con su faldón corto, enrasado con la cabeza de las patas. Encola y atornilla.',
+      'Une los dos lados con los faldones largos. Los tornillos de los dos faldones se cruzan dentro de la pata: desplaza unos 20 mm los de un lado. Mide las diagonales: tienen que ser iguales.',
+      `Pon la tapa boca abajo sobre una manta, centra encima el bastidor con ${fmt(v)} mm de vuelo por cada lado y fíjalo con ${esc} escuadras repartidas por los faldones.`);
+    notas.push(`Los tornillos de las escuadras no pueden pasar de ${fmt(tg - 3)} mm, para que no atraviesen la tapa.`);
+  } else if (tipo === 'cajonera') {
+    const W = num(t.ancho), H = num(t.alto), g = num(t.grosor), fg = num(t.fondoG), G = num(t.guia), hol = num(t.holgura);
+    const n = Math.max(1, Math.floor(num(t.nCaj))), Hi = H - 2 * g, bw = W - 2 * g - hol, bh = Math.floor(Hi / n - 30);
+    add('Cuerpo: techo y base a los laterales (3 por extremo)', `4 × ${tornHasta(g + 30)}`, 12);
+    add('Cajas: delantera y trasera a los laterales (2 por unión)', `4 × ${tornHasta(g + 20)}`, 8 * n);
+    add('Fondos de cajón (cada 10 cm)', `3 × ${tornHasta(fg + 13)}`, n * Math.ceil(2 * (G + bw) / 100));
+    add('Trasera del mueble (cada 15 cm)', `3 × ${tornHasta(fg + 13)}`, Math.ceil(2 * (H + W) / 150));
+    add('Guías, si no traen tornillos (unos 12 por par)', '3,5 × 16', 12 * n);
+    add('Frentes a las cajas, desde dentro (4 por frente)', `4 × ${tornMax(2 * g - 4)}`, 4 * n);
+    if (t.tirador === 'si') add('Tiradores, si no traen tornillos (2 por tirador)', `M4 × ${tornHasta(g + 10)}`, 2 * n);
+    pasos.push('Corta y lija las piezas y pon los cantos antes de montar.',
+      'Monta el cuerpo: techo y base entre los dos laterales. Pretaladra y avellana.',
+      'Mide las diagonales hasta que sean iguales y atornilla la trasera para fijar la escuadra.',
+      `Atornilla la parte fija de las guías en los laterales del cuerpo, a ras del borde delantero. Cada cajón ocupa ${fmt(Hi / n)} mm de alto: pon cada guía a ${fmt(bh / 2)} mm por encima del fondo de su hueco y usa un taco de madera como plantilla para que queden todas iguales.`,
+      `Monta las cajas: la delantera y la trasera van entre los dos laterales. El fondo se clava por debajo. Cada caja queda de ${fmt(bw)} × ${fmt(bh)} × ${fmt(G)} mm.`,
+      'Atornilla la parte móvil de las guías en las cajas y mete los cajones.',
+      'Pega cada frente a su caja con cinta de doble cara, dejando 3 mm entre frentes, y atorníllalo desde dentro de la caja.');
+    if (t.tirador === 'si') pasos.push('Taladra y pon los tiradores, todos a la misma altura en su frente.');
+    notas.push(`Comprueba la holgura que pide tu guía: aquí van ${fmt(hol)} mm entre las dos.`);
+  }
+  notas.push('Cantidades aproximadas, con un 10 % de más.' + (tipo === 'banco' || tipo === 'mesa' ? ' Encola todas las uniones de madera maciza.' : ''));
+  return { pasos, torn, notas };
+}
+
+function renderMontaje() {
+  const r = montajeDe(state.tipo, state.tpl || {});
+  const card = $('#montaje-card'); card.hidden = !r; if (!r) return;
+  $('#montaje').innerHTML = `<div class="montaje"><div><h3>Pasos</h3><ol class="pasos">${r.pasos.map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>
+    <div><h3>Tornillería</h3><table class="prev"><thead><tr><th>Para qué</th><th style="text-align:right">Medida (mm)</th><th style="text-align:right">Cant.</th></tr></thead><tbody>${r.torn.map(x => `<tr><td>${esc(x.uso)}</td><td class="n">${esc(x.medida)}</td><td class="n">${fmt(x.n)}</td></tr>`).join('')}</tbody></table>
+    ${r.notas.map(n => `<p class="hint">${esc(n)}</p>`).join('')}</div></div>`;
+}
 
 /* ---------- Proyectos ---------- */
 function newProject(tipo, nombre) {
@@ -1072,6 +1268,84 @@ $('#proj-del').addEventListener('click', (e) => {
   openProject(store.list[0].id);
 });
 
+
+/* ---------- Guardar en archivo y compartir ---------- */
+const ROLES = ['pata', 'trav', 'tapa', 'balda', 'rueda', 'melamina', 'dm', 'trasera', 'guias', 'tirador'];
+// Copia limpia de un proyecto que viene de fuera (archivo o enlace): ids nuevos, solo campos conocidos y tipos correctos.
+function limpiarProyecto(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.mats) || !Array.isArray(d.pieces)) return null;
+  const txt = (v, def, n = 120) => String(v ?? def).slice(0, n);
+  const ids = new Map();
+  const mats = d.mats.slice(0, 300).filter(m => m && typeof m === 'object').map(m => {
+    const id = nid(); ids.set(String(m.id), id);
+    const r = { id, nombre: txt(m.nombre, 'Material'), tipo: ['barra', 'tablero', 'unidad'].includes(m.tipo) ? m.tipo : 'barra', largo: num(m.largo), ancho: num(m.ancho), precio: m.precio === '' || m.precio == null ? '' : String(num(m.precio)) };
+    if (ROLES.includes(m.rol)) { r.rol = m.rol; r.oferta = m.oferta === 'manual' ? 'manual' : (Number.isInteger(m.oferta) && m.oferta >= 0 ? m.oferta : 'auto'); }
+    return r;
+  });
+  const cant2 = (v) => Math.max(0, Math.min(2, Math.floor(num(v))));
+  const pieces = d.pieces.slice(0, 500).filter(p => p && typeof p === 'object').map(p => ({
+    id: nid(), nombre: txt(p.nombre, 'Pieza'), mat: ids.get(String(p.mat)) || (mats[0] ? mats[0].id : ''),
+    largo: num(p.largo), ancho: num(p.ancho), cant: Math.max(0, Math.floor(num(p.cant))), cantoL: cant2(p.cantoL), cantoA: cant2(p.cantoA), veta: !!p.veta,
+  }));
+  const T = TEMPLATES[d.tipo];
+  let tpl = null;
+  if (T) {
+    tpl = { ...T.defaults };
+    Object.keys(T.defaults).forEach(k => { if (d.tpl && d.tpl[k] != null) tpl[k] = fieldKind(T, k) === 'n' ? num(d.tpl[k]) : txt(d.tpl[k], '', 200); });
+  }
+  return { id: nid(), nombre: txt(d.nombre, 'Proyecto'), tipo: T ? d.tipo : LIBRE, kerf: num(d.kerf), tpl, mats, pieces };
+}
+
+function descargar(nombre, datos) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(datos, null, 1)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+const nombreArchivo = (n) => (String(n || 'proyecto').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'proyecto');
+const avisoArchivo = (t) => { $('#io-msg').textContent = t; setTimeout(() => { if ($('#io-msg').textContent === t) $('#io-msg').textContent = ''; }, 5000); };
+
+$('#exp-uno').addEventListener('click', () => descargar(`despiece-${nombreArchivo(state.nombre)}.json`, { app: 'despiece-taller', version: 2, proyecto: state }));
+$('#exp-todo').addEventListener('click', () => descargar(`despiece-copia-${new Date().toISOString().slice(0, 10)}.json`, { app: 'despiece-taller', version: 2, list: store.list }));
+$('#imp-btn').addEventListener('click', () => $('#imp-file').click());
+$('#imp-file').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let d; try { d = JSON.parse(await f.text()); } catch (err) { avisoArchivo('Ese archivo no es una copia de esta app.'); return; }
+  const lista = Array.isArray(d && d.list) ? d.list : [d && d.proyecto ? d.proyecto : d];
+  const nuevos = lista.map(limpiarProyecto).filter(Boolean);
+  if (!nuevos.length) { avisoArchivo('Ese archivo no tiene ningún proyecto.'); return; }
+  store.list.push(...nuevos); openProject(nuevos[0].id);
+  avisoArchivo(nuevos.length === 1 ? `Añadido «${nuevos[0].nombre}».` : `Añadidos ${nuevos.length} proyectos; tus proyectos de antes siguen ahí.`);
+});
+
+// Enlace: el proyecto va comprimido dentro de la dirección (#p=…), así que no se sube a ningún sitio.
+const aB64 = (bytes) => { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const deB64 = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function flujo(bytes, Stream, modo) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new Stream(modo))).arrayBuffer()); }
+async function codificar(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (window.CompressionStream) { try { return 'z' + aB64(await flujo(bytes, CompressionStream, 'deflate-raw')); } catch (e) {} }
+  return 'j' + aB64(bytes);
+}
+async function decodificar(t) {
+  const bytes = deB64(t.slice(1));
+  return JSON.parse(new TextDecoder().decode(t[0] === 'z' ? await flujo(bytes, DecompressionStream, 'deflate-raw') : bytes));
+}
+$('#share-btn').addEventListener('click', async () => {
+  const { id, ...p } = state;
+  const url = location.href.split('#')[0] + '#p=' + await codificar(p);
+  $('#share-url').value = url; $('#share-url').hidden = false;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: state.nombre || 'Proyecto', url }); return; } catch (e) { /* cancelado: queda el enlace a la vista */ } }
+  try { await navigator.clipboard.writeText(url); avisoArchivo('Enlace copiado. Quien lo abra recibe una copia del proyecto.'); }
+  catch (e) { $('#share-url').select(); avisoArchivo('Copia el enlace de la casilla.'); }
+});
+async function abrirEnlace() {
+  const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/); if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  let p = null; try { p = limpiarProyecto(await decodificar(m[1])); } catch (e) {}
+  if (!p) { showAlert('El enlace del proyecto está incompleto o dañado.'); return; }
+  store.list.push(p); openProject(p.id); showAlert(`Proyecto «${p.nombre}» añadido desde el enlace. Tus proyectos de antes siguen ahí.`);
+}
+
 /* ---------- Arranque ---------- */
 loadStore();
 function renderAll() { renderProj(); $('#kerf').value = state.kerf; renderTpl(); renderPieces(); renderMats(); compute(); }
@@ -1098,6 +1372,8 @@ $('#copy').addEventListener('click', async () => {
   setTimeout(() => $('#copied').textContent = '', 2500);
 });
 renderAll();
+abrirEnlace();
+window.addEventListener("hashchange", abrirEnlace);
 // Precios revisados a mano (prices.json en el mismo repositorio).
 fetch('prices.json', { cache: 'no-cache' })
   .then(r => r.ok ? r.json() : Promise.reject(r.status))
