@@ -117,6 +117,25 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .newproj { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 10px; align-items: end; padding-top: 12px; border-top: 1px dashed var(--line); }
 @media (max-width: 560px) { .newproj { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .newproj > div { grid-column: 1 / -1; } }
 .tplinfo { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.planos-card { grid-column: 1 / -1; }
+.vistas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 20px; align-items: end; }
+.pzgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.pzcard { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; background: color-mix(in srgb, var(--tint) 3%, var(--surface)); }
+.pzcard .meta { font-size: 12px; color: var(--muted); }
+.plano svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.plano .pz { fill: var(--piece); stroke: var(--piece-line); stroke-width: 1.2; }
+.plano .pz2 { fill: color-mix(in srgb, var(--piece) 45%, var(--surface)); stroke: var(--piece-line); stroke-width: 1; }
+.plano .oc { fill: none; stroke: var(--muted); stroke-width: .9; stroke-dasharray: 4 3; }
+.plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
+.plano .cota { stroke: var(--muted); stroke-width: .8; fill: none; }
+.plano text { fill: var(--ink); font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; }
+.plano text.t { fill: var(--muted); font: 600 11px var(--font-body); letter-spacing: .04em; }
+@media print {
+  body.solo-planos { background: #fff; }
+  body.solo-planos header, body.solo-planos main > :not(.planos-card), body.solo-planos #print-planos { display: none !important; }
+  body.solo-planos main { display: block; padding: 0; }
+  body.solo-planos .pzcard, body.solo-planos .vistas > div { break-inside: avoid; }
+}
 @media (prefers-reduced-motion: no-preference) { button { transition: background .15s, border-color .15s; } }
 </style>
 </head>
@@ -124,7 +143,7 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 <header>
   <div>
     <h1>Despiece de taller</h1>
-    <p class="sub">Piezas y materiales → lista de cortes para la tienda, planos de corte y coste. Medidas en milímetros.</p>
+    <p class="sub">Piezas y materiales → lista de cortes para la tienda, planos de corte, planos de piezas y coste. Medidas en milímetros.</p>
   </div>
 </header>
 
@@ -202,6 +221,11 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
       <div id="plans"></div>
     </section>
   </div>
+  <section class="card t-pizarra planos-card" id="planos-card">
+    <div class="head"><h2>Planos de piezas</h2><button id="print-planos" type="button">Imprimir planos</button></div>
+    <div id="plano-mueble"></div>
+    <div id="plano-piezas"></div>
+  </section>
 </main>
 
 <script>
@@ -569,6 +593,7 @@ function compute() {
     [fmt(nSheets), nSheets === 1 ? 'tablero' : 'tableros'],
     [anyCost ? eur(cost) + (priced ? '' : '*') : '—', anyCost && !priced ? 'coste (*faltan precios)' : 'coste estimado'],
   ].map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  renderPlanos();
 }
 
 /* ---------- Plantillas ---------- */
@@ -736,7 +761,7 @@ function fieldKind(T, k) { const f = T.fields.find(x => x[0] === k); return f ? 
 
 function renderTpl() {
   const T = TEMPLATES[state.tipo];
-  $('#tpl-card').hidden = !T; if (!T) return;
+  $('#tpl-card').hidden = !T; if (!T) { renderPlanoMueble(); return; }
   state.tpl = { ...T.defaults, ...(state.tpl || {}) };
   $('#tpl-title').textContent = 'Plantilla: ' + T.nombre.toLowerCase();
   $('#tpl-hint').textContent = T.hint;
@@ -757,6 +782,7 @@ function renderTplPreview() {
     `<table class="prev"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th></tr></thead><tbody>` +
     list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${tipos[p.mk] === 'unidad' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
     `</tbody></table>` + (info.length ? `<ul class="tplinfo">${info.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
+  renderPlanoMueble();
 }
 
 // Genera piezas y materiales de la plantilla en el proyecto p. Reutiliza materiales con el mismo nombre (y su precio).
@@ -792,6 +818,188 @@ $('#tpl-fields').addEventListener('input', (e) => {
   save(); renderTplPreview();
 });
 $('#tpl-apply').addEventListener('click', applyTpl);
+
+/* ---------- Planos de piezas y del mueble montado ---------- */
+// Lienzo en milímetros: s = píxeles por mm; los márgenes (en px) dejan sitio a las cotas.
+function lienzo(w, h, o = {}) {
+  const s = o.s || Math.min((o.maxW || 300) / w, (o.maxH || 200) / h);
+  const p = { l: 12, r: 12, t: 12, b: 12, ...(o.pad || {}) };
+  const X = (mm) => +(p.l + mm * s).toFixed(1), Y = (mm) => +(p.t + mm * s).toFixed(1);
+  let out = '';
+  const tick = (x, y) => `<line class="cota" x1="${x - 3}" y1="${y + 3}" x2="${x + 3}" y2="${y - 3}"/>`;
+  return {
+    s, X, Y,
+    rect(x, y, rw, rh, cls = 'pz') { if (rw > 0 && rh > 0) out += `<rect class="${cls}" x="${X(x)}" y="${Y(y)}" width="${+(rw * s).toFixed(1)}" height="${+(rh * s).toFixed(1)}"/>`; },
+    circle(cx, cy, r, cls = 'pz') { out += `<circle class="${cls}" cx="${X(cx)}" cy="${Y(cy)}" r="${+(r * s).toFixed(1)}"/>`; },
+    line(x1, y1, x2, y2, cls = 'suelo') { out += `<line class="${cls}" x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}"/>`; },
+    title(x, t) { out += `<text class="t" x="${X(x)}" y="${p.t - 8}" text-anchor="middle">${esc(t)}</text>`; },
+    // Cota horizontal entre x1 y x2, referida a la altura yRef y desplazada off px (positivo = hacia abajo).
+    cotaH(x1, x2, yRef, off, t) {
+      if (!(x2 > x1)) return;
+      const a = X(x1), b = X(x2), y0 = Y(yRef), y = y0 + off, d = off > 0 ? 1 : -1;
+      out += `<line class="cota" x1="${a}" y1="${y0 + 2 * d}" x2="${a}" y2="${y + 4 * d}"/><line class="cota" x1="${b}" y1="${y0 + 2 * d}" x2="${b}" y2="${y + 4 * d}"/>`;
+      out += `<line class="cota" x1="${a - 3}" y1="${y}" x2="${b + 3}" y2="${y}"/>${tick(a, y)}${tick(b, y)}`;
+      out += `<text x="${(a + b) / 2}" y="${y - 3}" text-anchor="middle">${esc(t ?? fmt(x2 - x1))}</text>`;
+    },
+    // Cota vertical entre y1 e y2, referida a xRef y desplazada off px (positivo = a la derecha).
+    cotaV(y1, y2, xRef, off, t) {
+      if (!(y2 > y1)) return;
+      const a = Y(y1), b = Y(y2), x0 = X(xRef), x = x0 + off, d = off > 0 ? 1 : -1;
+      out += `<line class="cota" x1="${x0 + 2 * d}" y1="${a}" x2="${x + 4 * d}" y2="${a}"/><line class="cota" x1="${x0 + 2 * d}" y1="${b}" x2="${x + 4 * d}" y2="${b}"/>`;
+      out += `<line class="cota" x1="${x}" y1="${a - 3}" x2="${x}" y2="${b + 3}"/>${tick(x, a)}${tick(x, b)}`;
+      const tx = off > 0 ? x + 12 : x - 4;
+      out += `<text transform="translate(${tx} ${(a + b) / 2}) rotate(-90)" text-anchor="middle">${esc(t ?? fmt(y2 - y1))}</text>`;
+    },
+    svg(label, extraW = 0) {
+      const W = Math.ceil(p.l + w * s + p.r + extraW), H = Math.ceil(p.t + h * s + p.b);
+      return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(label)}">${out}</svg>`;
+    },
+  };
+}
+
+const seccionDe = (n) => { const m = String(n || '').match(/(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)/i); return m ? [num(m[1]), num(m[2])] : null; };
+const grosorDe = (n) => { const m = String(n || '').match(/(\d+(?:[.,]\d+)?)\s*mm/i); return m ? num(m[1]) : 0; };
+
+function piezaSVG(p, m) {
+  const L = num(p.largo);
+  if (m.tipo === 'barra') {
+    if (!L) return '';
+    const sec = seccionDe(m.nombre), c = sec ? sec[1] : 0;
+    const d = lienzo(L, c || 40, { maxW: 200, maxH: 50, pad: { b: 34, r: sec ? 34 : 12 } });
+    const hv = Math.max(c || 40, 9 / d.s); // las barras finas se dibujan con un mínimo de grosor para que se vean
+    const dd = lienzo(L, hv, { s: d.s, pad: { b: 34, r: sec ? 34 : 12 } });
+    dd.rect(0, 0, L, hv);
+    dd.cotaH(0, L, hv, 22);
+    if (c) dd.cotaV(0, hv, L, 12, fmt(c));
+    return { svg: dd.svg(`${p.nombre}: ${fmt(L)} mm`), meta: sec ? `Sección ${fmt(sec[0])} × ${fmt(sec[1])} mm` : '' };
+  }
+  const A = num(p.ancho); if (!L || !A) return '';
+  const d = lienzo(L, A, { maxW: 190, maxH: 150, pad: { b: 34, r: 34 } });
+  d.rect(0, 0, L, A);
+  d.cotaH(0, L, A, 22);
+  d.cotaV(0, A, L, 12);
+  const g = grosorDe(m.nombre);
+  return { svg: d.svg(`${p.nombre}: ${fmt(L)} por ${fmt(A)} mm`), meta: g ? `Grosor ${fmt(g)} mm` : '' };
+}
+
+function renderPlanoPiezas() {
+  const cards = [], unidades = [];
+  state.pieces.forEach(p => {
+    const m = matById(p.mat); if (!m || !(p.cant > 0)) return;
+    if (m.tipo === 'unidad') { unidades.push(`${fmt(p.cant)} × ${p.nombre || m.nombre}`); return; }
+    const r = piezaSVG(p, m); if (!r) return;
+    cards.push(`<div class="pzcard"><h3>${esc(p.nombre || 'Pieza')} <span class="chip">× ${fmt(p.cant)}</span></h3>
+      <div class="meta">${esc(m.nombre)}${r.meta ? ' · ' + esc(r.meta) : ''}</div><div class="plano">${r.svg}</div></div>`);
+  });
+  $('#plano-piezas').innerHTML = cards.length
+    ? `<h3 class="sheetlabel">Cada pieza, con sus medidas de corte en mm</h3><div class="pzgrid">${cards.join('')}</div>` + (unidades.length ? `<p class="hint">Herrajes y otros: ${esc(unidades.join(', '))}.</p>` : '')
+    : '<p class="hint">Añade piezas para ver sus planos.</p>';
+}
+
+// Vistas del mueble montado (frente y lateral, misma escala), a partir de las medidas de la plantilla.
+function vistasMueble(tipo, t) {
+  const T = TEMPLATES[tipo]; if (!T) return null;
+  if (T.build(t).errors.length) return { error: true };
+  const v2 = (fw, sw, H, frente, lado, notas) => {
+    const caja = ($('#plano-mueble').clientWidth || 600) - 110; // en móvil se dibuja más pequeño para que las cotas sigan legibles
+    const s = Math.min(Math.max(180, Math.min(420, caja)) / Math.max(fw, sw), 340 / H);
+    const pad = { l: 40, r: 62, t: 22, b: 44 };
+    const f = lienzo(fw, H, { s, pad }), l = lienzo(sw, H, { s, pad });
+    frente(f); lado(l);
+    return { frente: f.svg('Vista de frente'), lado: l.svg('Vista lateral'), notas };
+  };
+  if (tipo === 'banco') {
+    const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), tc = num(t.travC), tg = num(t.tapaG), bg = num(t.baldaG);
+    const pata = H - r - tg, bajo = tg + pata - 100 - tc; // travesaño bajo a 10 cm del pie de la pata (orientativo)
+    const lado = (d, W) => {
+      const i = W - 2 * v - 2 * P;
+      d.rect(0, 0, W, tg);
+      d.rect(v, tg, P, pata); d.rect(W - v - P, tg, P, pata);
+      d.rect(v + P, tg, i, tc); d.rect(v + P, bajo, i, tc);
+      if (t.balda === 'si') d.rect(v + P, bajo - bg, i, bg, 'pz2');
+      [v + P / 2, W - v - P / 2].forEach(cx => { const rr = Math.min(r * 0.38, 45); d.rect(cx - 15, H - r, 30, r - 2 * rr, 'pz2'); d.circle(cx, H - rr, rr, 'pz2'); });
+      d.line(-25, H, W + 25, H);
+      d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 42); d.cotaV(H - r, H, W, 14, fmt(r));
+      d.cotaV(tg + tc, bajo - (t.balda === 'si' ? bg : 0), 0, -14, fmt(bajo - (t.balda === 'si' ? bg : 0) - tg - tc));
+    };
+    return v2(L, A, H, d => { lado(d, L); d.title(L / 2, 'FRENTE'); }, d => { lado(d, A); d.title(A / 2, 'LATERAL'); },
+      ['La altura de los travesaños bajos es orientativa (10 cm por encima del pie de la pata).']);
+  }
+  if (tipo === 'estanteria') {
+    const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), re = num(t.retr), tr = t.trasera === 'si' ? num(t.traseraG) : 0;
+    const n = Math.max(0, Math.floor(num(t.nBaldas))), hueco = (H - z - 2 * g - n * g) / (n + 1);
+    const ys = [...Array(n)].map((_, i) => g + hueco * (i + 1) + g * i);
+    return v2(W, D + tr, H, d => {
+      d.rect(0, 0, g, H); d.rect(W - g, 0, g, H); d.rect(g, 0, W - 2 * g, g); d.rect(g, H - z - g, W - 2 * g, g);
+      if (z > 0) d.rect(g, H - z, W - 2 * g, z, 'pz2');
+      ys.forEach(y => d.rect(g, y, W - 2 * g, g));
+      d.line(-25, H, W + 25, H);
+      d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 14);
+      if (hueco > 0) d.cotaV(g, g + hueco, 0, -14, fmt(hueco));
+      if (z > 0) d.cotaV(H - z, H, 0, -14, fmt(z));
+      d.title(W / 2, 'FRENTE');
+    }, d => {
+      d.rect(0, 0, D, H); if (tr) d.rect(D, 0, tr, H, 'pz2');
+      ys.forEach(y => d.rect(re, y, D - re, g, 'oc'));
+      d.line(-25, H, D + tr + 25, H);
+      d.cotaH(0, D, H, 26); d.cotaV(0, H, D + tr, 14);
+      d.title((D + tr) / 2, 'LATERAL');
+    }, ['En el lateral, las líneas discontinuas son las baldas, que quedan ocultas detrás del lateral.']);
+  }
+  if (tipo === 'mesa') {
+    const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), P = num(t.pata), fc = num(t.faldC), tg = num(t.tapaG);
+    const lado = (d, W, nombre) => {
+      d.rect(0, 0, W, tg); d.rect(v, tg, P, H - tg); d.rect(W - v - P, tg, P, H - tg); d.rect(v + P, tg, W - 2 * v - 2 * P, fc);
+      d.line(-25, H, W + 25, H);
+      d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 14); d.cotaV(tg + fc, H, 0, -14);
+      d.cotaH(v + P, W - v - P, tg + fc, 16);
+      d.title(W / 2, nombre);
+    };
+    return v2(L, A, H, d => lado(d, L, 'FRENTE'), d => lado(d, A, 'LATERAL'), ['La cota de la izquierda es la altura libre bajo el faldón.']);
+  }
+  if (tipo === 'cajonera') {
+    const W = num(t.ancho), H = num(t.alto), D = num(t.fondo), g = num(t.grosor), G = num(t.guia), fg = num(t.fondoG);
+    const n = Math.max(1, Math.floor(num(t.nCaj))), Hi = H - 2 * g, bh = Math.floor(Hi / n - 30);
+    const fh = Math.floor((H - 4 - 3 * (n - 1)) / n), fa = W - 4;
+    const fy = [...Array(n)].map((_, i) => 2 + i * (fh + 3));
+    return v2(W, g + D + fg, H, d => {
+      d.rect(0, 0, W, H, 'pz2');
+      fy.forEach(y => { d.rect(2, y, fa, fh); if (t.tirador === 'si') d.rect(W / 2 - 64, y + Math.min(45, fh / 4), 128, 10, 'pz2'); });
+      d.line(-25, H, W + 25, H);
+      d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 14); d.cotaV(fy[0], fy[0] + fh, 0, -14, fmt(fh));
+      d.title(W / 2, 'FRENTE');
+    }, d => {
+      fy.forEach(y => d.rect(0, y, g, fh));
+      d.rect(g, 0, D, H); d.rect(g + D, 0, fg, H, 'pz2');
+      [...Array(n)].forEach((_, i) => d.rect(2 * g, g + i * Hi / n + 15, G, bh, 'oc'));
+      d.line(-25, H, g + D + fg + 25, H);
+      d.cotaH(g, g + D, H, 26); d.cotaV(0, H, g + D + fg, 14);
+      d.title((g + D + fg) / 2, 'LATERAL');
+    }, ['En el lateral, los rectángulos discontinuos son las cajas de los cajones; a la izquierda, los frentes.']);
+  }
+  return null;
+}
+
+function renderPlanoMueble() {
+  const r = vistasMueble(state.tipo, state.tpl || {});
+  const box = $('#plano-mueble');
+  if (!r) { box.innerHTML = ''; return; }
+  if (r.error) { box.innerHTML = '<p class="hint">Corrige la plantilla para ver el mueble montado.</p>'; return; }
+  box.innerHTML = `<h3 class="sheetlabel">Mueble montado, según las medidas de la plantilla (mm)</h3>
+    <div class="vistas"><div class="plano">${r.frente}</div><div class="plano">${r.lado}</div></div>` +
+    (r.notas || []).map(n => `<p class="hint">${esc(n)}</p>`).join('');
+}
+
+function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); }
+let anchoPlanos = 0;
+window.addEventListener('resize', () => { const w = $('#plano-mueble').clientWidth; if (Math.abs(w - anchoPlanos) > 40) { anchoPlanos = w; renderPlanoMueble(); } });
+$('#print-planos').addEventListener('click', () => {
+  document.body.classList.add('solo-planos');
+  const quitar = () => { document.body.classList.remove('solo-planos'); window.removeEventListener('afterprint', quitar); };
+  window.addEventListener('afterprint', quitar);
+  window.print();
+  setTimeout(quitar, 1000);
+});
 
 /* ---------- Proyectos ---------- */
 function newProject(tipo, nombre) {
