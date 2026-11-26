@@ -1,6 +1,8 @@
 # Despiece de taller
 
-App web para sacar el despiece de un mueble, el plan de cortes, la lista para la tienda y el coste. Cada lunes llega un recordatorio por Telegram con las fichas de Obramat, Leroy Merlin y Brico Depôt y su último precio, para revisarlos a mano.
+App web para sacar el despiece de un mueble, el plan de cortes, los planos de cada pieza con sus medidas (y del mueble montado, de frente y de lado), la lista para la tienda y el coste. 
+
+Cada lunes llega un recordatorio por Telegram con las fichas de Obramat, Leroy Merlin y Brico Depôt y su último precio, para revisarlos a mano.
 
 - `index.html`: la app. Se publica con GitHub Pages y lee `prices.json`.
 - `prices.json`: los productos de cada tienda con su precio y la fecha en que se revisó.
