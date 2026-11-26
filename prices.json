@@ -1,5 +1,5 @@
 {
-  "actualizado": "2026-11-17",
+  "actualizado": "2026-11-26",
   "productos": {
     "pata": [
       {
@@ -82,7 +82,7 @@
         "largo": 2440,
         "ancho": 1220,
         "url": "https://www.obramat.es/productos/tablero-contrachapado-de-pino-fenolico-244x122x1-5cm-25150651.html",
-        "aviso": "Es de 15 mm: pon 15 en «Tapa: grosor».",
+        "aviso": "Es de 15 mm: pon 15 en el grosor de la tapa o del tablero, en la plantilla.",
         "precio_anterior": null,
         "comprobado": "2026-11-17",
         "estado": "manual"
@@ -96,7 +96,7 @@
         "largo": 2440,
         "ancho": 1220,
         "url": "https://www.leroymerlin.es/productos/tablero-contrachapado-de-pino-fenolico-uso-interior-exterior-de-122x244x1-5cm-87617140.html",
-        "aviso": "Es de 15 mm: pon 15 en «Tapa: grosor».",
+        "aviso": "Es de 15 mm: pon 15 en el grosor de la tapa o del tablero, en la plantilla.",
         "precio_anterior": null,
         "comprobado": "2026-11-17",
         "estado": "manual"
@@ -169,6 +169,269 @@
         "nota": "Más robusta. Mira su altura en la ficha.",
         "precio_anterior": null,
         "comprobado": "2026-11-17",
+        "estado": "manual"
+      }
+    ],
+    "melamina": [
+      {
+        "id": "melamina-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Melamina blanca 244×122, 16 mm",
+        "seccion": "16 mm",
+        "precio": 22.57,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.obramat.es/productos/tablero-melamina-blanco-244x122x1-6cm-10001642.html",
+        "aviso": "Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "melamina-leroymerlin-1",
+        "tienda": "Leroy Merlin",
+        "producto": "Melamina blanca 244×122, 16 mm",
+        "seccion": "16 mm",
+        "precio": 38.99,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-aglomerado-en-melamina-blanco-244x122x1-6cm-acabado-liso-cantos-rectos-437164.html",
+        "aviso": "Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "melamina-leroymerlin-2",
+        "tienda": "Leroy Merlin",
+        "producto": "Melamina blanca 244×122, 19 mm",
+        "seccion": "19 mm",
+        "precio": 51.99,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-aglomerado-en-melamina-blanco-de-122x244x1-9cm-anchoxaltoxgrosor-10497095.html",
+        "aviso": "Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "melamina-bricodept-3",
+        "tienda": "Brico Depôt",
+        "producto": "Melamina blanca 2 cantos 250×60, 18 mm",
+        "seccion": "18 mm",
+        "precio": 34.95,
+        "largo": 2500,
+        "ancho": 600,
+        "url": "https://www.bricodepot.es/tablero-de-melamina-blanco-2-cantos-250-x-60-x-1-8-cm-8421468424818",
+        "nota": "No venden el tablero entero de 244×122: es una tabla de 60 cm de ancho con los cantos largos ya rematados.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      }
+    ],
+    "dm": [
+      {
+        "id": "dm-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Tablero DM (MDF) 244×122, 16 mm",
+        "seccion": "16 mm",
+        "precio": 31.26,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.obramat.es/productos/tablero-mdf-244x122x1-6cm-10360805.html",
+        "nota": "Precio por cantidad: comprando varios sale un 5 % más barato.",
+        "aviso": "Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "dm-leroymerlin-1",
+        "tienda": "Leroy Merlin",
+        "producto": "Tablero DM (MDF) 244×122, 16 mm",
+        "seccion": "16 mm",
+        "precio": 51.99,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-mdf-crudo-244x122x1-6cm-cantos-rectos-138495.html",
+        "aviso": "Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "dm-leroymerlin-2",
+        "tienda": "Leroy Merlin",
+        "producto": "Tablero DM (MDF) 244×122, 19 mm",
+        "seccion": "19 mm",
+        "precio": 60.99,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-mdf-crudo-244x122x1-9cm-cantos-rectos-138586.html",
+        "aviso": "Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "dm-bricodept-3",
+        "tienda": "Brico Depôt",
+        "producto": "Tablero DM (MDF) 244×122, 19 mm",
+        "seccion": "19 mm",
+        "precio": 56.0,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.bricodepot.es/tablero-de-mdf-natural-244-x-122-x-1-9-cm-8421468300266",
+        "aviso": "Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      }
+    ],
+    "trasera": [
+      {
+        "id": "trasera-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Tablero DM (MDF) 244×122, 3 mm",
+        "seccion": "3 mm",
+        "precio": 8.69,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.obramat.es/productos/tablero-mdf-244x122x0-3cm-10001481.html",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "trasera-obramat-1",
+        "tienda": "Obramat",
+        "producto": "Melamina blanca 244×122, 3 mm",
+        "seccion": "3 mm",
+        "precio": 13.5,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.obramat.es/productos/tablero-de-melamina-blanco-244-x-122-x-0-3-cm-10001621.html",
+        "nota": "Blanca por una cara: queda bien si la trasera se ve.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "trasera-leroymerlin-2",
+        "tienda": "Leroy Merlin",
+        "producto": "Tablero HDF 244×122, 3 mm",
+        "seccion": "3 mm",
+        "precio": 22.29,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/tablero-hdf-crudo-244x122x0-3cm-cantos-rectos-11190914.html",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "trasera-leroymerlin-3",
+        "tienda": "Leroy Merlin",
+        "producto": "Trasera DM lacada blanca 244×122, 3 mm",
+        "seccion": "3 mm",
+        "precio": 25.29,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.leroymerlin.es/productos/trasera-de-mdf-lacado-blanco-244x122x0-3cm-acabado-liso-cantos-rectos-438550.html",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "trasera-bricodept-4",
+        "tienda": "Brico Depôt",
+        "producto": "Tablero DM (MDF) 244×122, 3 mm",
+        "seccion": "3 mm",
+        "precio": 21.45,
+        "largo": 2440,
+        "ancho": 1220,
+        "url": "https://www.bricodepot.es/tablero-de-mdf-natural-244-x-122-x-0-3-cm-8421468407675",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      }
+    ],
+    "guias": [
+      {
+        "id": "guias-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Juego de guías telescópicas de bolas 45 cm",
+        "seccion": "450 mm",
+        "precio": 3.0,
+        "url": "https://www.obramat.es/productos/juego-guia-cajon-telescopica-con-rodamiento-45-cm-10085474.html",
+        "nota": "Precio muy bajo: confirma en la ficha que sea el par y que siga a la venta.",
+        "aviso": "Son de 450 mm: si usas otra medida, cambia «Largo de la guía».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "guias-obramat-1",
+        "tienda": "Obramat",
+        "producto": "Guía de cajón 45 cm zincada, fijación lateral",
+        "seccion": "450 mm",
+        "precio": 7.2,
+        "url": "https://www.obramat.es/productos/guia-para-cajon-45cm-zincada-fijacion-lateral-25045768.html",
+        "nota": "La ficha dice «unidad»: confirma si es el par.",
+        "aviso": "Son de 450 mm: si usas otra medida, cambia «Largo de la guía».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "guias-leroymerlin-2",
+        "tienda": "Leroy Merlin",
+        "producto": "Guía de bolas 45 cm, extracción total, 20 kg",
+        "seccion": "450 mm",
+        "precio": 7.38,
+        "url": "https://www.leroymerlin.es/productos/guia-para-cajon-de-bolas-45-cm-apertura-total-fijacion-lateral-carga-20-kg-81888026.html",
+        "nota": "Precio de oferta (Black Friday). Confirma si es el par.",
+        "aviso": "Son de 450 mm: si usas otra medida, cambia «Largo de la guía».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "guias-bricodept-3",
+        "tienda": "Brico Depôt",
+        "producto": "Guías de bolas Emuca 450 mm, extracción total (5 pares)",
+        "seccion": "450 mm",
+        "precio": 8.6,
+        "url": "https://www.bricodepot.es/emuca-5-pares-gu-ias-bolas-extr-total-alto-45mm-prof-450mm-cincado-24316e41",
+        "nota": "Se vende en caja de 5 pares por 43 €; aquí va el precio por par. Lo vende otra empresa en la web de Brico Depôt.",
+        "aviso": "Son de 450 mm: si usas otra medida, cambia «Largo de la guía».",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      }
+    ],
+    "tirador": [
+      {
+        "id": "tirador-obramat-0",
+        "tienda": "Obramat",
+        "producto": "Tirador de aluminio gris",
+        "precio": 2.88,
+        "url": "https://www.obramat.es/productos/tirador-mueble-aluminio-gris-1ud-10091361.html",
+        "nota": "Mira la distancia entre tornillos en la ficha.",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
+        "estado": "manual"
+      },
+      {
+        "id": "tirador-leroymerlin-1",
+        "tienda": "Leroy Merlin",
+        "producto": "Tirador REI gris, 128 mm entre ejes",
+        "seccion": "128 mm",
+        "precio": 2.29,
+        "url": "https://www.leroymerlin.es/productos/tirador-mueble-rei-gris-plata-distancia-entre-eje-128-mm-11499831.html",
+        "precio_anterior": null,
+        "comprobado": "2026-11-26",
         "estado": "manual"
       }
     ]

@@ -210,7 +210,7 @@ const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100
 let uid = 1; const nid = () => 'i' + (Date.now().toString(36)) + (uid++);
 
 /* Precios consultados en las webs de las tiendas (IVA incluido, península). Cambian según tienda y día. */
-let PRECIOS_FECHA = '17 de noviembre de 2026';
+let PRECIOS_FECHA = '26 de noviembre de 2026';
 let CATALOGO = {
   pata: [
     { tienda: 'Obramat', producto: 'Listón abeto cepillado 70×70 mm', seccion: '70×70', precio: 12.60, largo: 2400, url: 'https://www.obramat.es/productos/liston-de-abeto-cepillado-2400x70x70mm-10977953.html', nota: 'Confirma el precio: la web mostraba también el de una tienda de Canarias.' },
@@ -222,8 +222,8 @@ let CATALOGO = {
     { tienda: 'Leroy Merlin', producto: 'Listón abeto cepillado 68×34 mm (pack de 5)', seccion: '34×68', precio: 13.23, largo: 2400, url: 'https://www.leroymerlin.es/productos/pack-de-5-listones-de-madera-cepillados-de-68x34mm-x-2-4-m-97633173.html', nota: 'Se vende en pack de 5 por 66,15 €; aquí va el precio por listón.', aviso: 'Sección distinta: pon 34 en «Travesaño: grosor» y 68 en el canto.' },
   ],
   tapa: [
-    { tienda: 'Obramat', producto: 'Contrachapado pino fenólico 244×122, 15 mm', seccion: '15 mm', precio: 54.00, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-contrachapado-de-pino-fenolico-244x122x1-5cm-25150651.html', aviso: 'Es de 15 mm: pon 15 en «Tapa: grosor».' },
-    { tienda: 'Leroy Merlin', producto: 'Contrachapado pino fenólico 122×244, 15 mm', seccion: '15 mm', precio: 55.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-contrachapado-de-pino-fenolico-uso-interior-exterior-de-122x244x1-5cm-87617140.html', aviso: 'Es de 15 mm: pon 15 en «Tapa: grosor».' },
+    { tienda: 'Obramat', producto: 'Contrachapado pino fenólico 244×122, 15 mm', seccion: '15 mm', precio: 54.00, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-contrachapado-de-pino-fenolico-244x122x1-5cm-25150651.html', aviso: 'Es de 15 mm: pon 15 en el grosor de la tapa o del tablero, en la plantilla.' },
+    { tienda: 'Leroy Merlin', producto: 'Contrachapado pino fenólico 122×244, 15 mm', seccion: '15 mm', precio: 55.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-contrachapado-de-pino-fenolico-uso-interior-exterior-de-122x244x1-5cm-87617140.html', aviso: 'Es de 15 mm: pon 15 en el grosor de la tapa o del tablero, en la plantilla.' },
   ],
   balda: [
     { tienda: 'Obramat', producto: 'Tablero OSB3 250×125, 15 mm', seccion: '15 mm', precio: 23.89, largo: 2500, ancho: 1250, url: 'https://www.obramat.es/productos/tablero-osb3-250x125x1-5cm-25064668.html', nota: 'Precio por cantidad.', aviso: 'Es de 15 mm: pon 15 en «Balda: grosor».' },
@@ -234,7 +234,55 @@ let CATALOGO = {
     { tienda: 'Obramat', producto: 'Rueda giratoria Ø75 poliuretano con freno, 40 kg, 98 mm de alto', seccion: '98 mm', precio: 10.90, url: 'https://www.obramat.es/productos/rueda-acrilica-giratoria-75mm-poliuretano-pisada-blanda-con-freno-75mm-40kg-ruedas-alex-25108233.html', aviso: 'Mide 98 mm de alto: pon 98 en «Altura de la rueda».' },
     { tienda: 'Obramat', producto: 'Rueda giratoria Ø80 poliamix con freno, 130 kg', precio: 30.37, url: 'https://www.obramat.es/productos/rueda-giratoria-80mm-poliamix-hasta-130kg-llanta-acero-inoxidable-10569230.html', nota: 'Más robusta. Mira su altura en la ficha.' },
   ],
+  melamina: [
+    { tienda: 'Obramat', producto: 'Melamina blanca 244×122, 16 mm', seccion: '16 mm', precio: 22.57, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-melamina-blanco-244x122x1-6cm-10001642.html', aviso: 'Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Leroy Merlin', producto: 'Melamina blanca 244×122, 16 mm', seccion: '16 mm', precio: 38.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-aglomerado-en-melamina-blanco-244x122x1-6cm-acabado-liso-cantos-rectos-437164.html', aviso: 'Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Leroy Merlin', producto: 'Melamina blanca 244×122, 19 mm', seccion: '19 mm', precio: 51.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-aglomerado-en-melamina-blanco-de-122x244x1-9cm-anchoxaltoxgrosor-10497095.html', aviso: 'Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Brico Depôt', producto: 'Melamina blanca 2 cantos 250×60, 18 mm', seccion: '18 mm', precio: 34.95, largo: 2500, ancho: 600, url: 'https://www.bricodepot.es/tablero-de-melamina-blanco-2-cantos-250-x-60-x-1-8-cm-8421468424818', nota: 'No venden el tablero entero de 244×122: es una tabla de 60 cm de ancho con los cantos largos ya rematados.' },
+  ],
+  dm: [
+    { tienda: 'Obramat', producto: 'Tablero DM (MDF) 244×122, 16 mm', seccion: '16 mm', precio: 31.26, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-mdf-244x122x1-6cm-10360805.html', nota: 'Precio por cantidad: comprando varios sale un 5 % más barato.', aviso: 'Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Leroy Merlin', producto: 'Tablero DM (MDF) 244×122, 16 mm', seccion: '16 mm', precio: 51.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-mdf-crudo-244x122x1-6cm-cantos-rectos-138495.html', aviso: 'Es de 16 mm: pon 16 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Leroy Merlin', producto: 'Tablero DM (MDF) 244×122, 19 mm', seccion: '19 mm', precio: 60.99, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-mdf-crudo-244x122x1-9cm-cantos-rectos-138586.html', aviso: 'Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.' },
+    { tienda: 'Brico Depôt', producto: 'Tablero DM (MDF) 244×122, 19 mm', seccion: '19 mm', precio: 56.00, largo: 2440, ancho: 1220, url: 'https://www.bricodepot.es/tablero-de-mdf-natural-244-x-122-x-1-9-cm-8421468300266', aviso: 'Es de 19 mm: pon 19 en el grosor del tablero de la plantilla y genera las piezas.' },
+  ],
+  trasera: [
+    { tienda: 'Obramat', producto: 'Tablero DM (MDF) 244×122, 3 mm', seccion: '3 mm', precio: 8.69, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-mdf-244x122x0-3cm-10001481.html' },
+    { tienda: 'Obramat', producto: 'Melamina blanca 244×122, 3 mm', seccion: '3 mm', precio: 13.50, largo: 2440, ancho: 1220, url: 'https://www.obramat.es/productos/tablero-de-melamina-blanco-244-x-122-x-0-3-cm-10001621.html', nota: 'Blanca por una cara: queda bien si la trasera se ve.' },
+    { tienda: 'Leroy Merlin', producto: 'Tablero HDF 244×122, 3 mm', seccion: '3 mm', precio: 22.29, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/tablero-hdf-crudo-244x122x0-3cm-cantos-rectos-11190914.html' },
+    { tienda: 'Leroy Merlin', producto: 'Trasera DM lacada blanca 244×122, 3 mm', seccion: '3 mm', precio: 25.29, largo: 2440, ancho: 1220, url: 'https://www.leroymerlin.es/productos/trasera-de-mdf-lacado-blanco-244x122x0-3cm-acabado-liso-cantos-rectos-438550.html' },
+    { tienda: 'Brico Depôt', producto: 'Tablero DM (MDF) 244×122, 3 mm', seccion: '3 mm', precio: 21.45, largo: 2440, ancho: 1220, url: 'https://www.bricodepot.es/tablero-de-mdf-natural-244-x-122-x-0-3-cm-8421468407675' },
+  ],
+  guias: [
+    { tienda: 'Obramat', producto: 'Juego de guías telescópicas de bolas 45 cm', seccion: '450 mm', precio: 3.00, url: 'https://www.obramat.es/productos/juego-guia-cajon-telescopica-con-rodamiento-45-cm-10085474.html', nota: 'Precio muy bajo: confirma en la ficha que sea el par y que siga a la venta.', aviso: 'Son de 450 mm: si usas otra medida, cambia «Largo de la guía».' },
+    { tienda: 'Obramat', producto: 'Guía de cajón 45 cm zincada, fijación lateral', seccion: '450 mm', precio: 7.20, url: 'https://www.obramat.es/productos/guia-para-cajon-45cm-zincada-fijacion-lateral-25045768.html', nota: 'La ficha dice «unidad»: confirma si es el par.', aviso: 'Son de 450 mm: si usas otra medida, cambia «Largo de la guía».' },
+    { tienda: 'Leroy Merlin', producto: 'Guía de bolas 45 cm, extracción total, 20 kg', seccion: '450 mm', precio: 7.38, url: 'https://www.leroymerlin.es/productos/guia-para-cajon-de-bolas-45-cm-apertura-total-fijacion-lateral-carga-20-kg-81888026.html', nota: 'Precio de oferta (Black Friday). Confirma si es el par.', aviso: 'Son de 450 mm: si usas otra medida, cambia «Largo de la guía».' },
+    { tienda: 'Brico Depôt', producto: 'Guías de bolas Emuca 450 mm, extracción total (5 pares)', seccion: '450 mm', precio: 8.60, url: 'https://www.bricodepot.es/emuca-5-pares-gu-ias-bolas-extr-total-alto-45mm-prof-450mm-cincado-24316e41', nota: 'Se vende en caja de 5 pares por 43 €; aquí va el precio por par. Lo vende otra empresa en la web de Brico Depôt.', aviso: 'Son de 450 mm: si usas otra medida, cambia «Largo de la guía».' },
+  ],
+  tirador: [
+    { tienda: 'Obramat', producto: 'Tirador de aluminio gris', precio: 2.88, url: 'https://www.obramat.es/productos/tirador-mueble-aluminio-gris-1ud-10091361.html', nota: 'Mira la distancia entre tornillos en la ficha.' },
+    { tienda: 'Leroy Merlin', producto: 'Tirador REI gris, 128 mm entre ejes', seccion: '128 mm', precio: 2.29, url: 'https://www.leroymerlin.es/productos/tirador-mueble-rei-gris-plata-distancia-entre-eje-128-mm-11499831.html' },
+  ],
 };
+// Papel de un material en el catálogo de precios, deducido de su nombre (p. ej. «Melamina blanca 16 mm», «DM 3 mm»).
+function rolPorNombre(nombre) {
+  const n = String(nombre || '').toLowerCase();
+  const mm = n.match(/(\d+(?:[.,]\d+)?)\s*mm/); const g = mm ? num(mm[1]) : 0;
+  if (/gu[ií]as?\b|corredera/.test(n)) return 'guias';
+  if (/tirador|pomo/.test(n)) return 'tirador';
+  const fino = g > 0 && g <= 5;
+  if (/melamin/.test(n)) return fino ? 'trasera' : 'melamina';
+  if (/\b(dm|mdf|hdf)\b/.test(n)) return fino ? 'trasera' : 'dm';
+  if (/contrachap/.test(n)) return fino ? null : 'tapa';
+  if (/\bosb\b/.test(n)) return 'balda';
+  return null;
+}
+// Papeles de los materiales de una plantilla: el que dice el nombre y, si no dice nada, el de por defecto.
+function rolesDe(m, porDefecto) {
+  const r = {};
+  Object.keys(m).forEach(k => { const x = rolPorNombre(m[k]) || (porDefecto || {})[k]; if (x) r[k] = x; });
+  return r;
+}
 const ofertasDe = (m) => (m && m.rol && CATALOGO[m.rol]) || [];
 function ofertaActiva(m) {
   const of = ofertasDe(m);
@@ -281,7 +329,7 @@ function save() { try { localStorage.setItem(KEY2, JSON.stringify(store)); } cat
 function migrate(p) {
   const roles = { p70: 'pata', p45: 'trav', con: 'tapa', osb: 'balda', rue: 'rueda' };
   p.mats = p.mats || []; p.pieces = p.pieces || []; if (p.kerf == null) p.kerf = 3;
-  p.mats.forEach(m => { if (!m.rol && roles[m.id]) m.rol = roles[m.id]; if (m.rol && m.oferta == null) m.oferta = (m.precio !== '' && m.precio != null) ? 'manual' : 'auto'; });
+  p.mats.forEach(m => { if (!m.rol) m.rol = roles[m.id] || rolPorNombre(m.nombre) || undefined; if (m.rol && m.oferta == null) m.oferta = (m.precio !== '' && m.precio != null) ? 'manual' : 'auto'; });
   return p;
 }
 
@@ -553,7 +601,7 @@ function benchPieces(t) {
   if (t.balda === 'si') list.push({ nombre: 'Balda', mk: 'balda', largo, ancho: FW, cant: 1 });
   list.push({ nombre: 'Rueda', mk: 'rueda', largo: 0, ancho: 0, cant: 4 });
   const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
-  const roles = { pata: 'pata', trav: 'trav', tapa: 'tapa', balda: 'balda', rueda: 'rueda' };
+  const roles = rolesDe(m, { pata: 'pata', trav: 'trav', tapa: 'tapa', balda: 'balda', rueda: 'rueda' });
   return { list, m, tipos, roles, errors, avisos, info: [] };
 }
 
@@ -576,7 +624,7 @@ function shelfPieces(t) {
   if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n });
   if (z > 0) list.push({ nombre: 'Zócalo', mk: 'tablero', largo: Wi, ancho: z, cant: 1 });
   if (t.trasera === 'si') list.push({ nombre: 'Trasera', mk: 'trasera', largo: H, ancho: W, cant: 1 });
-  return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: {}, errors, avisos, info };
+  return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: rolesDe(m), errors, avisos, info };
 }
 
 function tablePieces(t) {
@@ -595,7 +643,7 @@ function tablePieces(t) {
     { nombre: 'Faldón corto', mk: 'fald', largo: fcorto, ancho: 0, cant: 2 },
     { nombre: 'Tapa', mk: 'tapa', largo: L, ancho: A, cant: 1 },
   ];
-  return { list, m, tipos: { pata: 'barra', fald: 'barra', tapa: 'tablero' }, roles: { pata: 'pata', fald: 'trav', tapa: 'tapa' }, errors, avisos, info };
+  return { list, m, tipos: { pata: 'barra', fald: 'barra', tapa: 'tablero' }, roles: rolesDe(m, { pata: 'pata', fald: 'trav', tapa: 'tapa' }), errors, avisos, info };
 }
 
 function drawerPieces(t) {
@@ -628,7 +676,7 @@ function drawerPieces(t) {
     { nombre: 'Guías', mk: 'guias', largo: 0, ancho: 0, cant: n },
   ];
   if (t.tirador === 'si') list.push({ nombre: 'Tirador', mk: 'tirador', largo: 0, ancho: 0, cant: n });
-  return { list, m, tipos: { cuerpo: 'tablero', fondo: 'tablero', guias: 'unidad', tirador: 'unidad' }, roles: {}, errors, avisos, info };
+  return { list, m, tipos: { cuerpo: 'tablero', fondo: 'tablero', guias: 'unidad', tirador: 'unidad' }, roles: rolesDe(m), errors, avisos, info };
 }
 
 const TEMPLATES = {

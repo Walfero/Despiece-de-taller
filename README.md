@@ -23,7 +23,7 @@ Tus piezas y materiales se guardan solo en tu navegador; el repositorio no los g
 
 ## Añadir o cambiar productos
 
-En `prices.json`, cada material (`pata`, `trav`, `tapa`, `balda`, `rueda`) tiene una lista de ofertas. Para añadir otra, copia una entrada, cambia `id`, `tienda`, `producto`, `url` y `precio`. En los tableros indica también `largo` y `ancho` en mm.
+En `prices.json`, cada material (`pata`, `trav`, `tapa`, `balda`, `rueda`, `melamina`, `dm`, `trasera`, `guias`, `tirador`) tiene una lista de ofertas. La app elige la lista por el nombre del material: «Melamina…», «DM…» o «MDF…», un tablero de 5 mm o menos (trasera), «Contrachapado…» (tapa), «OSB…» (balda), «Guías…» y «Tirador». Para añadir otra, copia una entrada, cambia `id`, `tienda`, `producto`, `url` y `precio`. En los tableros indica también `largo` y `ancho` en mm.
 
 ## Revisar los precios
 
