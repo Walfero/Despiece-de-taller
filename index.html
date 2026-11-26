@@ -127,6 +127,13 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .plano .pz2 { fill: color-mix(in srgb, var(--piece) 45%, var(--surface)); stroke: var(--piece-line); stroke-width: 1; }
 .plano .oc { fill: none; stroke: var(--muted); stroke-width: .9; stroke-dasharray: 4 3; }
 .plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
+.plano .veta { stroke: var(--piece-line); stroke-width: .7; opacity: .45; }
+.plano .canto { stroke: color-mix(in srgb, var(--t-pizarra) 75%, var(--ink)); stroke-width: 3.5; stroke-linecap: square; }
+.pzctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 4px; }
+.pzctrl .chk { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.pzctrl .chk input { width: auto; }
+.pzctrl select { margin-top: 2px; padding: 4px 6px; }
+@media print { .pzctrl { display: none; } }
 .plano .cota { stroke: var(--muted); stroke-width: .8; fill: none; }
 .plano text { fill: var(--ink); font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; }
 .plano text.t { fill: var(--muted); font: 600 11px var(--font-body); letter-spacing: .04em; }
@@ -458,7 +465,7 @@ function packSheets(items, W, H, kerf) {
   const sheets = []; const bad = [];
   const newSheet = () => { const s = { free: [{ x: 0, y: 0, w: W + kerf, h: H + kerf }], placed: [] }; sheets.push(s); return s; };
   for (const it of sorted) {
-    const opts = [[it.largo, it.ancho, false], [it.ancho, it.largo, true]];
+    const opts = it.veta ? [[it.largo, it.ancho, false]] : [[it.largo, it.ancho, false], [it.ancho, it.largo, true]];
     if (!opts.some(([w, h]) => w <= W && h <= H)) { bad.push(it); continue; }
     let best = null;
     const tryIn = (s, si) => s.free.forEach((r, ri) => opts.forEach(([w, h, rot]) => {
@@ -483,7 +490,7 @@ function packSheets(items, W, H, kerf) {
 
 function expand(pieces) {
   const out = [];
-  pieces.forEach(p => { for (let i = 0; i < Math.max(0, Math.floor(p.cant)); i++) out.push({ nombre: p.nombre || 'Pieza', largo: num(p.largo), ancho: num(p.ancho) }); });
+  pieces.forEach(p => { for (let i = 0; i < Math.max(0, Math.floor(p.cant)); i++) out.push({ nombre: p.nombre || 'Pieza', largo: num(p.largo), ancho: num(p.ancho), veta: !!p.veta }); });
   return out;
 }
 
@@ -560,19 +567,22 @@ function compute() {
       const miss = items.filter(i => !i.ancho);
       miss.forEach(i => alerts.push(`A «${i.nombre}» le falta el ancho (es de tablero).`));
       const { sheets, bad } = packSheets(items.filter(i => i.ancho && i.largo), W, H, kerf);
-      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)}×${fmt(b.ancho)}) no cabe en un tablero de ${fmt(W)}×${fmt(H)} de ${m.nombre}.`));
+      bad.forEach(b => alerts.push(`«${b.nombre}» (${fmt(b.largo)}×${fmt(b.ancho)}) no cabe en un tablero de ${fmt(W)}×${fmt(H)} de ${m.nombre}${b.veta ? ' con la veta a lo largo' : ''}.`));
       if (!sheets.length) return;
       nSheets += sheets.length; if (comp) comp.n = sheets.length;
       if (price != null) { cost += price * sheets.length; anyCost = true; } else priced = false;
       const used = sheets.reduce((a, s) => a + s.placed.reduce((b, p) => b + p.w * p.h, 0), 0);
       const pct = Math.round(100 * used / (W * H * sheets.length));
       shop.push(`${m.nombre} — tablero de ${fmt(W)}×${fmt(H)} mm: ${sheets.length} ${sheets.length === 1 ? 'tablero' : 'tableros'}` + tiendaTxt);
+      const canto = state.pieces.filter(p => p.mat === m.id).reduce((a, p) => a + (num(p.cantoL) * num(p.largo) + num(p.cantoA) * num(p.ancho)) * Math.max(0, Math.floor(p.cant)), 0);
+      const cantoTxt = canto > 0 && ((g) => (`  Canto${g ? ` para ${fmt(g)} mm (cinta de ${fmt(g <= 20 ? 22 : g + 4)} mm de ancho)` : ''}: ${(canto / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} m; compra un 10 % más para recortes.`))(grosorDe(m.nombre));
       plans += `<div class="mat"><h3>${esc(m.nombre)} <span class="chip">${sheets.length} × ${fmt(W)}×${fmt(H)}</span><span class="chip ${pct >= 60 ? 'good' : ''}">aprovechado ${pct}%</span></h3>`;
       sheets.forEach((s, i) => {
         const g = groupCuts(s.placed, p => `${fmt(p.largo)} × ${fmt(p.ancho)}  (${p.nombre})`);
         shop.push(`  Tablero ${i + 1}: ` + g.map(([k, n]) => `${n} × ${k}`).join(', '));
         plans += `<p class="sheetlabel">Tablero ${i + 1}</p><div class="diag">${sheetSVG(s, W, H)}</div>`;
       });
+      if (cantoTxt) shop.push(cantoTxt);
       plans += `</div>`;
     }
   });
@@ -646,10 +656,10 @@ function shelfPieces(t) {
   if (!errors.length) info.push(libre ? `Hueco libre entre baldas, repartidas a partes iguales: ${fmt(huecos[0])} mm.` : `Huecos libres, de abajo arriba: ${huecos.map(fmt).join(', ')} mm.`);
   const m = { tablero: `${t.mat || 'Tablero'} ${fmt(g)} mm`, trasera: `${t.traseraMat || 'Tablero'} ${fmt(num(t.traseraG))} mm` };
   const list = [
-    { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2 },
-    { nombre: 'Techo y suelo', mk: 'tablero', largo: Wi, ancho: D, cant: 2 },
+    { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Techo y suelo', mk: 'tablero', largo: Wi, ancho: D, cant: 2, cantoL: 1 },
   ];
-  if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n });
+  if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n, cantoL: 1 });
   if (z > 0) list.push({ nombre: 'Zócalo', mk: 'tablero', largo: Wi, ancho: z, cant: 1 });
   if (t.trasera === 'si') list.push({ nombre: 'Trasera', mk: 'trasera', largo: H, ancho: W, cant: 1 });
   return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: rolesDe(m), errors, avisos, info };
@@ -714,11 +724,11 @@ function drawerPieces(t) {
     tirador: 'Tirador',
   };
   const list = [
-    { nombre: 'Lateral', mk: 'cuerpo', largo: H, ancho: D, cant: 2 },
-    { nombre: 'Techo y base', mk: 'cuerpo', largo: Wi, ancho: D, cant: 2 },
-    { nombre: 'Frente de cajón', mk: 'cuerpo', largo: fa, ancho: fh, cant: n },
-    { nombre: 'Lateral de cajón', mk: 'cuerpo', largo: G, ancho: bh, cant: 2 * n },
-    { nombre: 'Delantera y trasera de cajón', mk: 'cuerpo', largo: bw - 2 * g, ancho: bh, cant: 2 * n },
+    { nombre: 'Lateral', mk: 'cuerpo', largo: H, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Techo y base', mk: 'cuerpo', largo: Wi, ancho: D, cant: 2, cantoL: 1 },
+    { nombre: 'Frente de cajón', mk: 'cuerpo', largo: fa, ancho: fh, cant: n, cantoL: 2, cantoA: 2 },
+    { nombre: 'Lateral de cajón', mk: 'cuerpo', largo: G, ancho: bh, cant: 2 * n, cantoL: 1 },
+    { nombre: 'Delantera y trasera de cajón', mk: 'cuerpo', largo: bw - 2 * g, ancho: bh, cant: 2 * n, cantoL: 1 },
     { nombre: 'Trasera', mk: 'fondo', largo: H, ancho: W, cant: 1 },
     { nombre: 'Fondo de cajón', mk: 'fondo', largo: G, ancho: bw, cant: n },
     { nombre: 'Guías', mk: 'guias', largo: 0, ancho: 0, cant: n },
@@ -825,7 +835,7 @@ function generate(p) {
     } else if (!mat.rol && roles[mk]) { mat.rol = roles[mk]; if (mat.oferta == null) mat.oferta = 'auto'; }
     ids[mk] = mat.id;
   });
-  p.pieces = list.map(x => ({ id: nid(), nombre: x.nombre, mat: ids[x.mk], largo: x.largo, ancho: x.ancho, cant: x.cant }));
+  p.pieces = list.map(x => ({ id: nid(), nombre: x.nombre, mat: ids[x.mk], largo: x.largo, ancho: x.ancho, cant: x.cant, cantoL: x.cantoL || 0, cantoA: x.cantoA || 0, veta: !!x.veta }));
   return true;
 }
 
@@ -897,12 +907,20 @@ function piezaSVG(p, m) {
     return { svg: dd.svg(`${p.nombre}: ${fmt(L)} mm`), meta: sec ? `Sección ${fmt(sec[0])} × ${fmt(sec[1])} mm` : '' };
   }
   const A = num(p.ancho); if (!L || !A) return '';
-  const d = lienzo(L, A, { maxW: 190, maxH: 150, pad: { b: 34, r: 34 } });
+  const d = lienzo(L, A, { maxW: 190, maxH: 150, pad: { b: 34, r: 34, l: 14, t: 14 } });
   d.rect(0, 0, L, A);
+  if (p.veta) for (let k = 1; k < 6; k++) { const y = A * k / 6; d.line(L * 0.06, y, L * (0.94 - 0.08 * (k % 2)), y, 'veta'); }
+  // Cantos: el primero de cada lado va abajo (largo) o a la izquierda (ancho)
+  const cl = num(p.cantoL), ca = num(p.cantoA);
+  if (cl >= 1) d.line(0, A, L, A, 'canto'); if (cl >= 2) d.line(0, 0, L, 0, 'canto');
+  if (ca >= 1) d.line(0, 0, 0, A, 'canto'); if (ca >= 2) d.line(L, 0, L, A, 'canto');
   d.cotaH(0, L, A, 22);
   d.cotaV(0, A, L, 12);
   const g = grosorDe(m.nombre);
-  return { svg: d.svg(`${p.nombre}: ${fmt(L)} por ${fmt(A)} mm`), meta: g ? `Grosor ${fmt(g)} mm` : '' };
+  const sel = (f, v, txt) => `<label class="small">${txt}<select data-pid="${esc(p.id)}" data-f="${f}" id="pz-${f}-${esc(p.id)}">${[0, 1, 2].map(k => `<option value="${k}" ${num(v) === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>`;
+  const ctrl = `<div class="pzctrl"><label class="chk"><input type="checkbox" data-pid="${esc(p.id)}" data-f="veta" id="pz-veta-${esc(p.id)}" ${p.veta ? 'checked' : ''}> Veta a lo largo (no se gira al cortar)</label>
+    ${sel('cantoL', cl, 'Cantos en el largo')}${sel('cantoA', ca, 'Cantos en el ancho')}</div>`;
+  return { svg: d.svg(`${p.nombre}: ${fmt(L)} por ${fmt(A)} mm`), meta: g ? `Grosor ${fmt(g)} mm` : '', ctrl };
 }
 
 function renderPlanoPiezas() {
@@ -912,10 +930,10 @@ function renderPlanoPiezas() {
     if (m.tipo === 'unidad') { unidades.push(`${fmt(p.cant)} × ${p.nombre || m.nombre}`); return; }
     const r = piezaSVG(p, m); if (!r) return;
     cards.push(`<div class="pzcard"><h3>${esc(p.nombre || 'Pieza')} <span class="chip">× ${fmt(p.cant)}</span></h3>
-      <div class="meta">${esc(m.nombre)}${r.meta ? ' · ' + esc(r.meta) : ''}</div><div class="plano">${r.svg}</div></div>`);
+      <div class="meta">${esc(m.nombre)}${r.meta ? ' · ' + esc(r.meta) : ''}</div><div class="plano">${r.svg}</div>${r.ctrl || ''}</div>`);
   });
   $('#plano-piezas').innerHTML = cards.length
-    ? `<h3 class="sheetlabel">Cada pieza, con sus medidas de corte en mm</h3><div class="pzgrid">${cards.join('')}</div>` + (unidades.length ? `<p class="hint">Herrajes y otros: ${esc(unidades.join(', '))}.</p>` : '')
+    ? `<h3 class="sheetlabel">Cada pieza, con sus medidas de corte en mm</h3><p class="hint">En los tableros, la línea gruesa azul marca los cantos que van canteados y las rayas finas, la dirección de la veta.</p><div class="pzgrid">${cards.join('')}</div>` + (unidades.length ? `<p class="hint">Herrajes y otros: ${esc(unidades.join(', '))}.</p>` : '')
     : '<p class="hint">Añade piezas para ver sus planos.</p>';
 }
 
@@ -1015,6 +1033,11 @@ function renderPlanoMueble() {
     (r.notas || []).map(n => `<p class="hint">${esc(n)}</p>`).join('');
 }
 
+$('#plano-piezas').addEventListener('change', (e) => {
+  const el = e.target, f = el.dataset.f, p = state.pieces.find(x => x.id === el.dataset.pid); if (!p || !f) return;
+  p[f] = f === 'veta' ? el.checked : num(el.value);
+  const id = el.id; save(); compute(); const nuevo = document.getElementById(id); if (nuevo) nuevo.focus();
+});
 function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); }
 let anchoPlanos = 0;
 window.addEventListener('resize', () => { const w = $('#plano-mueble').clientWidth; if (Math.abs(w - anchoPlanos) > 40) { anchoPlanos = w; renderPlanoMueble(); } });
