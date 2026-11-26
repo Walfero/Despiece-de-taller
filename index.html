@@ -110,6 +110,13 @@ table.prev { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.prev td, table.prev th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
 table.prev th { font-size: 12px; color: var(--muted); font-weight: 500; }
 table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+[hidden] { display: none !important; }
+.projbar { grid-column: 1 / -1; }
+.projrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 560px) { .projrow { grid-template-columns: minmax(0, 1fr); } }
+.newproj { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 10px; align-items: end; padding-top: 12px; border-top: 1px dashed var(--line); }
+@media (max-width: 560px) { .newproj { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .newproj > div { grid-column: 1 / -1; } }
+.tplinfo { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
 @media (prefers-reduced-motion: no-preference) { button { transition: background .15s, border-color .15s; } }
 </style>
 </head>
@@ -119,16 +126,34 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
     <h1>Despiece de taller</h1>
     <p class="sub">Piezas y materiales → lista de cortes para la tienda, planos de corte y coste. Medidas en milímetros.</p>
   </div>
-  <div class="btns">
-    <button id="btn-reset" type="button">Cargar ejemplo: banco 160×90×110</button>
-  </div>
 </header>
 
 <main>
+  <section class="card t-gris projbar" aria-label="Proyectos">
+    <div class="head"><h2>Proyecto</h2>
+      <div class="btns">
+        <button class="primary" id="proj-new-btn" type="button" aria-expanded="false" aria-controls="proj-new">+ Nuevo</button>
+        <button id="proj-dup" type="button">Duplicar</button>
+        <button id="proj-del" type="button">Borrar</button>
+      </div>
+    </div>
+    <div class="projrow">
+      <div><label class="small" for="proj-sel">Abrir proyecto</label><select id="proj-sel"></select></div>
+      <div><label class="small" for="proj-name">Nombre</label><input id="proj-name" autocomplete="off"></div>
+    </div>
+    <div class="newproj" id="proj-new" hidden>
+      <div><label class="small" for="np-tipo">Plantilla</label><select id="np-tipo"></select></div>
+      <div><label class="small" for="np-name">Nombre del proyecto</label><input id="np-name" autocomplete="off"></div>
+      <button class="primary" id="np-create" type="button">Crear</button>
+      <button id="np-cancel" type="button">Cancelar</button>
+    </div>
+    <p class="hint">Cada proyecto guarda sus medidas, piezas, materiales y precios en este navegador.</p>
+  </section>
+
   <div class="col">
     <section class="card t-pino" id="tpl-card">
-      <div class="head"><h2>Plantilla: banco de trabajo</h2><button class="primary" id="tpl-apply" type="button">Generar piezas</button></div>
-      <p class="hint">Pon las medidas del banco y las secciones reales de la tienda. «Generar piezas» sustituye la lista de piezas de abajo y conserva los precios de los materiales.</p>
+      <div class="head"><h2 id="tpl-title">Plantilla</h2><button class="primary" id="tpl-apply" type="button">Generar piezas</button></div>
+      <p class="hint"><span id="tpl-hint"></span> «Generar piezas» sustituye la lista de piezas de abajo y conserva los precios de los materiales.</p>
       <div class="settings" id="tpl-fields"></div>
       <div id="tpl-preview"></div>
     </section>
@@ -248,12 +273,17 @@ function example() {
   };
 }
 
-let state;
-try { state = JSON.parse(localStorage.getItem(KEY)) || example(); } catch (e) { state = example(); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+/* Proyectos: se guardan todos juntos; «state» es el proyecto abierto. La clave antigua (un solo proyecto) se deja intacta como copia. */
+const KEY2 = 'despiece-taller-v2';
+let store, state;
+function save() { try { localStorage.setItem(KEY2, JSON.stringify(store)); } catch (e) {} }
 // Datos guardados de versiones anteriores: asigna el papel de cada material del ejemplo.
-{ const roles = { p70: 'pata', p45: 'trav', con: 'tapa', osb: 'balda', rue: 'rueda' };
-  state.mats.forEach(m => { if (!m.rol && roles[m.id]) m.rol = roles[m.id]; if (m.rol && m.oferta == null) m.oferta = (m.precio !== '' && m.precio != null) ? 'manual' : 'auto'; }); }
+function migrate(p) {
+  const roles = { p70: 'pata', p45: 'trav', con: 'tapa', osb: 'balda', rue: 'rueda' };
+  p.mats = p.mats || []; p.pieces = p.pieces || []; if (p.kerf == null) p.kerf = 3;
+  p.mats.forEach(m => { if (!m.rol && roles[m.id]) m.rol = roles[m.id]; if (m.rol && m.oferta == null) m.oferta = (m.precio !== '' && m.precio != null) ? 'manual' : 'auto'; });
+  return p;
+}
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -493,30 +523,25 @@ function compute() {
   ].map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
 }
 
-/* ---------- Plantilla: banco de trabajo ---------- */
-const TPL_FIELDS = [
-  ['t', 'Banco (mm)'],
-  ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total, con ruedas'], ['vuelo', 'Vuelo de la tapa por lado'],
-  ['t', 'Ruedas y madera maciza (mm)'],
-  ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'],
-  ['t', 'Tableros'],
-  ['tapaMat', 'Tapa: material'], ['tapaG', 'Tapa: grosor (mm)'], ['balda', 'Balda inferior'], ['baldaMat', 'Balda: material'], ['baldaG', 'Balda: grosor (mm)'],
-];
-if (!state.tpl) state.tpl = { ...TPL_DEFAULT };
+/* ---------- Plantillas ---------- */
+// Cada plantilla: campos editables, valores por defecto y build(t) → piezas (mk = material de la plantilla), nombres de material, tipos y papel en el catálogo de precios.
+const SI_NO = [['si', 'Sí'], ['no', 'No']];
 
 function benchPieces(t) {
   const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), g = num(t.travG), tg = num(t.tapaG);
   const FL = L - 2 * v, FW = A - 2 * v;
   const nI = Math.max(0, Math.floor(num(t.nInter)));
-  const errors = [];
+  const errors = [], avisos = [];
   const pata = H - r - tg, largo = FL - 2 * P, corto = FW - 2 * P, inter = FW - 2 * g;
   if (pata <= 0) errors.push('El alto no da para las patas: revisa alto, rueda y grosor de la tapa.');
   if (largo <= 0 || corto <= 0 || inter <= 0) errors.push('La tapa es demasiado pequeña para ese vuelo y esas secciones.');
+  if (H > 1000) avisos.push('Más de 100 cm de alto es mucho para trabajar de pie; lo habitual son 85-95 cm.');
   const m = {
     pata: `Pino ${fmt(P)}×${fmt(P)}`,
     trav: `Pino ${fmt(g)}×${fmt(num(t.travC))}`,
     tapa: `${t.tapaMat || 'Tablero'} ${fmt(tg)} mm`,
     balda: `${t.baldaMat || 'Tablero'} ${fmt(num(t.baldaG))} mm`,
+    rueda: 'Rueda giratoria con freno',
   };
   const list = [
     { nombre: 'Pata', mk: 'pata', largo: pata, ancho: 0, cant: 4 },
@@ -527,59 +552,273 @@ function benchPieces(t) {
   list.push({ nombre: 'Tapa', mk: 'tapa', largo: L, ancho: A, cant: 1 });
   if (t.balda === 'si') list.push({ nombre: 'Balda', mk: 'balda', largo, ancho: FW, cant: 1 });
   list.push({ nombre: 'Rueda', mk: 'rueda', largo: 0, ancho: 0, cant: 4 });
-  m.rueda = 'Rueda giratoria con freno';
-  return { list, m, errors, frame: { FL, FW } };
+  const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
+  const roles = { pata: 'pata', trav: 'trav', tapa: 'tapa', balda: 'balda', rueda: 'rueda' };
+  return { list, m, tipos, roles, errors, avisos, info: [] };
 }
 
+function shelfPieces(t) {
+  const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), r = num(t.retr);
+  const n = Math.max(0, Math.floor(num(t.nBaldas)));
+  const Wi = W - 2 * g, errors = [], avisos = [], info = [];
+  if (Wi <= 0 || D <= 0) errors.push('El ancho no da para dos laterales de ese grosor.');
+  const hueco = (H - z - 2 * g - n * g) / (n + 1);
+  if (hueco <= 0) errors.push('No caben tantas baldas en ese alto.');
+  if (r >= D) errors.push('El retranqueo de las baldas es mayor que el fondo.');
+  if (Wi > 800 && g <= 19) avisos.push('Con más de 80 cm de luz, las baldas de 18 mm se comban con peso (libros). Añade un lateral central o sube el grosor.');
+  if (H > 1500 && D < 350) avisos.push('Es alta y poco profunda: fíjala a la pared.');
+  if (hueco > 0) info.push(`Hueco libre entre baldas, repartidas a partes iguales: ${fmt(hueco)} mm.`);
+  const m = { tablero: `${t.mat || 'Tablero'} ${fmt(g)} mm`, trasera: `${t.traseraMat || 'Tablero'} ${fmt(num(t.traseraG))} mm` };
+  const list = [
+    { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2 },
+    { nombre: 'Techo y suelo', mk: 'tablero', largo: Wi, ancho: D, cant: 2 },
+  ];
+  if (n) list.push({ nombre: 'Balda', mk: 'tablero', largo: Wi, ancho: D - r, cant: n });
+  if (z > 0) list.push({ nombre: 'Zócalo', mk: 'tablero', largo: Wi, ancho: z, cant: 1 });
+  if (t.trasera === 'si') list.push({ nombre: 'Trasera', mk: 'trasera', largo: H, ancho: W, cant: 1 });
+  return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: {}, errors, avisos, info };
+}
+
+function tablePieces(t) {
+  const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), P = num(t.pata), fg = num(t.faldG), fc = num(t.faldC), tg = num(t.tapaG);
+  const errors = [], avisos = [], info = [];
+  const pata = H - tg, fl = L - 2 * v - 2 * P, fcorto = A - 2 * v - 2 * P;
+  if (pata <= 0) errors.push('El alto no da para las patas.');
+  if (fl <= 0 || fcorto <= 0) errors.push('La tapa es demasiado pequeña para ese vuelo y esas patas.');
+  if (fl > 1200) avisos.push('Más de 120 cm entre patas: pon un travesaño central bajo la tapa.');
+  const libre = H - tg - fc;
+  if (libre > 0) info.push(`Altura libre bajo el faldón: ${fmt(libre)} mm${libre < 620 ? ' (justa para las rodillas; lo cómodo son 620 mm o más)' : ''}.`);
+  const m = { pata: `Pino ${fmt(P)}×${fmt(P)}`, fald: `Pino ${fmt(fg)}×${fmt(fc)}`, tapa: `${t.tapaMat || 'Tablero'} ${fmt(tg)} mm` };
+  const list = [
+    { nombre: 'Pata', mk: 'pata', largo: pata, ancho: 0, cant: 4 },
+    { nombre: 'Faldón largo', mk: 'fald', largo: fl, ancho: 0, cant: 2 },
+    { nombre: 'Faldón corto', mk: 'fald', largo: fcorto, ancho: 0, cant: 2 },
+    { nombre: 'Tapa', mk: 'tapa', largo: L, ancho: A, cant: 1 },
+  ];
+  return { list, m, tipos: { pata: 'barra', fald: 'barra', tapa: 'tablero' }, roles: { pata: 'pata', fald: 'trav', tapa: 'tapa' }, errors, avisos, info };
+}
+
+function drawerPieces(t) {
+  const W = num(t.ancho), H = num(t.alto), D = num(t.fondo), g = num(t.grosor), G = num(t.guia), hol = num(t.holgura);
+  const n = Math.max(1, Math.floor(num(t.nCaj)));
+  const errors = [], avisos = [], info = [];
+  const Wi = W - 2 * g, Hi = H - 2 * g;
+  const bw = Wi - hol, bh = Math.floor(Hi / n - 30);
+  const fh = Math.floor((H - 4 - 3 * (n - 1)) / n), fa = W - 4;
+  if (Wi <= 0 || Hi <= 0) errors.push('Las medidas no dan para el cuerpo con ese grosor.');
+  if (G > D - 5) errors.push('La guía es más larga que el fondo del mueble.');
+  if (bw - 2 * g <= 0) errors.push('El cajón queda demasiado estrecho.');
+  if (bh < 50) errors.push('Demasiados cajones para ese alto.');
+  if (!errors.length) info.push(`Caja de cada cajón: ${fmt(bw)} de ancho × ${fmt(bh)} de alto × ${fmt(G)} de fondo. Frentes superpuestos de ${fmt(fa)} × ${fmt(fh)} con 3 mm entre ellos.`);
+  avisos.push('Comprueba en la guía que compres cuánta holgura pide en total (suelen ser 25-26 mm) y ajusta «Holgura de las guías».');
+  const m = {
+    cuerpo: `${t.mat || 'Tablero'} ${fmt(g)} mm`,
+    fondo: `${t.fondoMat || 'Tablero'} ${fmt(num(t.fondoG))} mm`,
+    guias: `Guías telescópicas ${fmt(G)} mm (par)`,
+    tirador: 'Tirador',
+  };
+  const list = [
+    { nombre: 'Lateral', mk: 'cuerpo', largo: H, ancho: D, cant: 2 },
+    { nombre: 'Techo y base', mk: 'cuerpo', largo: Wi, ancho: D, cant: 2 },
+    { nombre: 'Frente de cajón', mk: 'cuerpo', largo: fa, ancho: fh, cant: n },
+    { nombre: 'Lateral de cajón', mk: 'cuerpo', largo: G, ancho: bh, cant: 2 * n },
+    { nombre: 'Delantera y trasera de cajón', mk: 'cuerpo', largo: bw - 2 * g, ancho: bh, cant: 2 * n },
+    { nombre: 'Trasera', mk: 'fondo', largo: H, ancho: W, cant: 1 },
+    { nombre: 'Fondo de cajón', mk: 'fondo', largo: G, ancho: bw, cant: n },
+    { nombre: 'Guías', mk: 'guias', largo: 0, ancho: 0, cant: n },
+  ];
+  if (t.tirador === 'si') list.push({ nombre: 'Tirador', mk: 'tirador', largo: 0, ancho: 0, cant: n });
+  return { list, m, tipos: { cuerpo: 'tablero', fondo: 'tablero', guias: 'unidad', tirador: 'unidad' }, roles: {}, errors, avisos, info };
+}
+
+const TEMPLATES = {
+  banco: {
+    nombre: 'Banco de trabajo', build: benchPieces, defaults: { ...TPL_DEFAULT },
+    hint: 'Pon las medidas del banco y las secciones reales de la tienda.',
+    fields: [
+      ['t', 'Banco (mm)'],
+      ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total, con ruedas'], ['vuelo', 'Vuelo de la tapa por lado'],
+      ['t', 'Ruedas y madera maciza (mm)'],
+      ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'],
+      ['t', 'Tableros'],
+      ['tapaMat', 'Tapa: material', 'txt'], ['tapaG', 'Tapa: grosor (mm)'], ['balda', 'Balda inferior', SI_NO], ['baldaMat', 'Balda: material', 'txt'], ['baldaG', 'Balda: grosor (mm)'],
+    ],
+  },
+  estanteria: {
+    nombre: 'Estantería', build: shelfPieces,
+    defaults: { alto: 1800, ancho: 800, fondo: 300, grosor: 18, nBaldas: 4, zocalo: 70, retr: 0, mat: 'Melamina blanca', trasera: 'si', traseraMat: 'DM', traseraG: 3 },
+    hint: 'Mueble de tablero: laterales enteros, techo, suelo y baldas fijas entre laterales; trasera clavada por detrás.',
+    fields: [
+      ['t', 'Estantería (mm)'],
+      ['alto', 'Alto total'], ['ancho', 'Ancho total'], ['fondo', 'Fondo'], ['nBaldas', 'Baldas intermedias'], ['zocalo', 'Alto del zócalo (0 = sin zócalo)'], ['retr', 'Retranqueo de las baldas'],
+      ['t', 'Tableros'],
+      ['mat', 'Material', 'txt'], ['grosor', 'Grosor (mm)'], ['trasera', 'Trasera', SI_NO], ['traseraMat', 'Trasera: material', 'txt'], ['traseraG', 'Trasera: grosor (mm)'],
+    ],
+  },
+  mesa: {
+    nombre: 'Mesa', build: tablePieces,
+    defaults: { largo: 1400, ancho: 800, alto: 750, vuelo: 40, pata: 70, faldG: 45, faldC: 70, tapaMat: 'Contrachapado', tapaG: 18 },
+    hint: 'Cuatro patas de madera maciza unidas por faldones bajo la tapa.',
+    fields: [
+      ['t', 'Mesa (mm)'],
+      ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total'], ['vuelo', 'Vuelo de la tapa por lado'],
+      ['t', 'Madera maciza (mm)'],
+      ['pata', 'Grosor de la pata (cuadrada)'], ['faldG', 'Faldón: grosor'], ['faldC', 'Faldón: canto'],
+      ['t', 'Tapa'],
+      ['tapaMat', 'Material', 'txt'], ['tapaG', 'Grosor (mm)'],
+    ],
+  },
+  cajonera: {
+    nombre: 'Cajonera', build: drawerPieces,
+    defaults: { ancho: 500, alto: 700, fondo: 500, grosor: 18, nCaj: 3, guia: 450, holgura: 25, mat: 'Contrachapado', fondoMat: 'DM', fondoG: 3, tirador: 'si' },
+    hint: 'Cuerpo de tablero con cajones iguales sobre guías telescópicas y frentes superpuestos.',
+    fields: [
+      ['t', 'Cajonera (mm)'],
+      ['ancho', 'Ancho total'], ['alto', 'Alto total'], ['fondo', 'Fondo'], ['nCaj', 'Número de cajones'],
+      ['t', 'Guías (mm)'],
+      ['guia', 'Largo de la guía'], ['holgura', 'Holgura de las guías (las dos)'], ['tirador', 'Tiradores', SI_NO],
+      ['t', 'Tableros'],
+      ['mat', 'Cuerpo y cajones: material', 'txt'], ['grosor', 'Grosor (mm)'], ['fondoMat', 'Trasera y fondos: material', 'txt'], ['fondoG', 'Grosor (mm)'],
+    ],
+  },
+};
+const LIBRE = 'libre';
+
+function fieldKind(T, k) { const f = T.fields.find(x => x[0] === k); return f ? (f[2] || 'n') : 'n'; }
+
 function renderTpl() {
+  const T = TEMPLATES[state.tipo];
+  $('#tpl-card').hidden = !T; if (!T) return;
+  state.tpl = { ...T.defaults, ...(state.tpl || {}) };
+  $('#tpl-title').textContent = 'Plantilla: ' + T.nombre.toLowerCase();
+  $('#tpl-hint').textContent = T.hint;
   const t = state.tpl;
-  $('#tpl-fields').innerHTML = TPL_FIELDS.map(([k, label]) => {
+  $('#tpl-fields').innerHTML = T.fields.map(([k, label, kind]) => {
     if (k === 't') return `<div class="fieldset-title">${label}</div>`;
-    if (k === 'balda') return `<div><label class="small" for="tp-${k}">${label}</label><select id="tp-${k}" data-k="${k}"><option value="si" ${t[k] === 'si' ? 'selected' : ''}>Sí</option><option value="no" ${t[k] === 'no' ? 'selected' : ''}>No</option></select></div>`;
-    const text = k === 'tapaMat' || k === 'baldaMat';
-    return `<div><label class="small" for="tp-${k}">${label}</label><input id="tp-${k}" data-k="${k}" ${text ? '' : 'type="number" min="0" inputmode="numeric"'} value="${esc(t[k])}"></div>`;
+    if (Array.isArray(kind)) return `<div><label class="small" for="tp-${k}">${label}</label><select id="tp-${k}" data-k="${k}">${kind.map(([v, l]) => `<option value="${v}" ${t[k] === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+    return `<div><label class="small" for="tp-${k}">${label}</label><input id="tp-${k}" data-k="${k}" ${kind === 'txt' ? '' : 'type="number" min="0" inputmode="numeric"'} value="${esc(t[k])}"></div>`;
   }).join('');
   renderTplPreview();
 }
 
 function renderTplPreview() {
-  const { list, m, errors } = benchPieces(state.tpl);
-  $('#tpl-preview').innerHTML = (errors.length ? errors.map(e => `<div class="alert">${esc(e)}</div>`).join('') : '') +
+  const T = TEMPLATES[state.tipo]; if (!T) return;
+  const { list, m, tipos, errors, avisos, info } = T.build(state.tpl);
+  $('#tpl-preview').innerHTML = errors.map(e => `<div class="alert">${esc(e)}</div>`).join('') +
+    avisos.map(e => `<p class="hint warn">${esc(e)}</p>`).join('') +
     `<table class="prev"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th></tr></thead><tbody>` +
-    list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${p.mk === 'rueda' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
-    `</tbody></table>`;
+    list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${tipos[p.mk] === 'unidad' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
+    `</tbody></table>` + (info.length ? `<ul class="tplinfo">${info.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
+}
+
+// Genera piezas y materiales de la plantilla en el proyecto p. Reutiliza materiales con el mismo nombre (y su precio).
+function generate(p) {
+  const T = TEMPLATES[p.tipo]; if (!T) return false;
+  const { list, m, tipos, roles, errors } = T.build(p.tpl);
+  if (errors.length) return false;
+  const ids = {};
+  [...new Set(list.map(x => x.mk))].forEach(mk => {
+    const nombre = m[mk];
+    let mat = p.mats.find(x => x.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
+    if (!mat) {
+      const tipo = tipos[mk];
+      mat = { id: nid(), nombre, tipo, largo: tipo === 'barra' ? 2400 : tipo === 'tablero' ? 2440 : 0, ancho: tipo === 'tablero' ? 1220 : 0, precio: '' };
+      if (roles[mk]) { mat.rol = roles[mk]; mat.oferta = 'auto'; }
+      p.mats.push(mat);
+    } else if (!mat.rol && roles[mk]) { mat.rol = roles[mk]; if (mat.oferta == null) mat.oferta = 'auto'; }
+    ids[mk] = mat.id;
+  });
+  p.pieces = list.map(x => ({ id: nid(), nombre: x.nombre, mat: ids[x.mk], largo: x.largo, ancho: x.ancho, cant: x.cant }));
+  return true;
 }
 
 function applyTpl() {
-  const { list, m, errors } = benchPieces(state.tpl);
-  if (errors.length) { showAlert('Corrige la plantilla antes de generar las piezas.'); return; }
-  const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
-  const ids = {};
-  Object.entries(m).forEach(([mk, nombre]) => {
-    if (mk === 'balda' && state.tpl.balda !== 'si') return;
-    let mat = state.mats.find(x => x.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
-    if (!mat) {
-      const tipo = tipos[mk];
-      mat = { id: nid(), rol: mk, oferta: 'auto', nombre, tipo, largo: tipo === 'barra' ? 2400 : tipo === 'tablero' ? 2440 : 0, ancho: tipo === 'tablero' ? 1220 : 0, precio: '' };
-      state.mats.push(mat);
-    }
-    if (!mat.rol) { mat.rol = mk; if (mat.oferta == null) mat.oferta = 'auto'; }
-    ids[mk] = mat.id;
-  });
-  state.pieces = list.map(p => ({ id: nid(), nombre: p.nombre, mat: ids[p.mk], largo: p.largo, ancho: p.ancho, cant: p.cant }));
+  if (!generate(state)) { showAlert('Corrige la plantilla antes de generar las piezas.'); return; }
   save(); renderMats(); renderPieces(); compute();
   const b = $('#tpl-apply'); b.textContent = 'Piezas generadas ✓'; setTimeout(() => b.textContent = 'Generar piezas', 2000);
 }
 
 $('#tpl-fields').addEventListener('input', (e) => {
-  const k = e.target.dataset.k; if (!k) return;
-  state.tpl[k] = (k === 'tapaMat' || k === 'baldaMat' || k === 'balda') ? e.target.value : num(e.target.value);
+  const k = e.target.dataset.k; const T = TEMPLATES[state.tipo]; if (!k || !T) return;
+  state.tpl[k] = fieldKind(T, k) === 'n' ? num(e.target.value) : e.target.value;
   save(); renderTplPreview();
 });
 $('#tpl-apply').addEventListener('click', applyTpl);
 
+/* ---------- Proyectos ---------- */
+function newProject(tipo, nombre) {
+  if (tipo === 'banco') return Object.assign(example(), { id: nid(), nombre, tipo });
+  const T = TEMPLATES[tipo];
+  const p = { id: nid(), nombre, tipo: T ? tipo : LIBRE, kerf: 3, tpl: T ? { ...T.defaults } : null, mats: [], pieces: [] };
+  if (T) generate(p);
+  else p.mats = [
+    { id: nid(), nombre: 'Listón', tipo: 'barra', largo: 2400, ancho: 0, precio: '' },
+    { id: nid(), nombre: 'Tablero 18 mm', tipo: 'tablero', largo: 2440, ancho: 1220, precio: '' },
+  ];
+  return p;
+}
+
+function loadStore() {
+  try { store = JSON.parse(localStorage.getItem(KEY2)); } catch (e) { store = null; }
+  if (!store || !Array.isArray(store.list) || !store.list.length) {
+    let old = null; try { old = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    const p = old && Array.isArray(old.mats) ? Object.assign(old, { id: nid(), nombre: 'Banco de trabajo', tipo: 'banco' }) : newProject('banco', 'Banco de trabajo');
+    store = { cur: p.id, list: [p] };
+  }
+  store.list.forEach(migrate);
+  state = store.list.find(p => p.id === store.cur) || store.list[0];
+  store.cur = state.id;
+}
+
+const tipoNombre = (p) => (TEMPLATES[p.tipo] ? TEMPLATES[p.tipo].nombre : 'Sin plantilla');
+function renderProjOptions() {
+  $('#proj-sel').innerHTML = store.list.map(p => `<option value="${esc(p.id)}" ${p.id === state.id ? 'selected' : ''}>${esc(p.nombre || 'Sin nombre')}${p.nombre === tipoNombre(p) ? '' : ' · ' + esc(tipoNombre(p))}</option>`).join('');
+}
+function renderProj() {
+  renderProjOptions();
+  $('#proj-name').value = state.nombre || '';
+  $('#proj-del').disabled = false;
+}
+function openProject(id) {
+  const p = store.list.find(x => x.id === id); if (!p) return;
+  state = p; store.cur = p.id; save(); renderAll();
+}
+
+$('#np-tipo').innerHTML = Object.entries(TEMPLATES).map(([k, T]) => `<option value="${k}">${T.nombre}</option>`).join('') + `<option value="${LIBRE}">Sin plantilla (piezas a mano)</option>`;
+$('#proj-sel').addEventListener('change', e => openProject(e.target.value));
+$('#proj-name').addEventListener('input', e => { state.nombre = e.target.value; save(); renderProjOptions(); });
+function toggleNew(show) {
+  $('#proj-new').hidden = !show; $('#proj-new-btn').setAttribute('aria-expanded', String(show));
+  if (show) { $('#np-name').value = ''; $('#np-name').placeholder = $('#np-tipo').selectedOptions[0].textContent; $('#np-tipo').focus(); }
+}
+$('#proj-new-btn').addEventListener('click', () => toggleNew($('#proj-new').hidden));
+$('#np-cancel').addEventListener('click', () => toggleNew(false));
+$('#np-tipo').addEventListener('change', e => { $('#np-name').placeholder = e.target.selectedOptions[0].textContent; });
+$('#np-create').addEventListener('click', () => {
+  const tipo = $('#np-tipo').value;
+  const nombre = $('#np-name').value.trim() || $('#np-tipo').selectedOptions[0].textContent;
+  const p = newProject(tipo, nombre);
+  store.list.push(p); toggleNew(false); openProject(p.id);
+});
+$('#np-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#np-create').click(); });
+$('#proj-dup').addEventListener('click', () => {
+  const p = JSON.parse(JSON.stringify(state)); p.id = nid(); p.nombre = (state.nombre || 'Proyecto') + ' (copia)';
+  store.list.push(p); openProject(p.id);
+  const b = $('#proj-dup'); b.textContent = 'Duplicado ✓'; setTimeout(() => b.textContent = 'Duplicar', 2000);
+});
+let confirmDel = false;
+$('#proj-del').addEventListener('click', (e) => {
+  const b = e.currentTarget;
+  if (!confirmDel) { confirmDel = true; b.textContent = `Pulsa otra vez para borrar «${state.nombre || 'este proyecto'}»`; setTimeout(() => { confirmDel = false; b.textContent = 'Borrar'; }, 3500); return; }
+  confirmDel = false; b.textContent = 'Borrar';
+  store.list = store.list.filter(p => p.id !== state.id);
+  if (!store.list.length) store.list.push(newProject('banco', 'Banco de trabajo'));
+  openProject(store.list[0].id);
+});
+
 /* ---------- Arranque ---------- */
-function renderAll() { $('#kerf').value = state.kerf; renderTpl(); renderPieces(); renderMats(); compute(); }
+loadStore();
+function renderAll() { renderProj(); $('#kerf').value = state.kerf; renderTpl(); renderPieces(); renderMats(); compute(); }
 bindEditor('#pieces', 'pieces', renderPieces);
 bindEditor('#mats', 'mats', () => { renderMats(); renderPieces(); });
 $('#kerf').addEventListener('input', e => { state.kerf = num(e.target.value); save(); compute(); });
@@ -592,12 +831,6 @@ $('#add-piece').addEventListener('click', () => {
 $('#add-mat').addEventListener('click', () => {
   state.mats.push({ id: nid(), nombre: 'Nuevo material', tipo: 'barra', largo: 2400, ancho: 0, precio: '' });
   save(); renderMats(); renderPieces(); compute();
-});
-let confirmReset = false;
-$('#btn-reset').addEventListener('click', (e) => {
-  if (!confirmReset) { confirmReset = true; e.target.textContent = 'Pulsa otra vez: se borrará lo que has metido'; setTimeout(() => { confirmReset = false; e.target.textContent = 'Cargar ejemplo: banco 160×90×110'; }, 3500); return; }
-  confirmReset = false; e.target.textContent = 'Cargar ejemplo: banco 160×90×110';
-  state = example(); save(); renderAll();
 });
 $('#copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(shopText); $('#copied').textContent = 'Copiada'; }
