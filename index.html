@@ -129,6 +129,10 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
 .plano .veta { stroke: var(--piece-line); stroke-width: .7; opacity: .45; }
 .plano .canto { stroke: color-mix(in srgb, var(--t-pizarra) 75%, var(--ink)); stroke-width: 3.5; stroke-linecap: square; }
+.montaje { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
+@media (max-width: 760px) { .montaje { grid-template-columns: minmax(0, 1fr); } }
+.montaje h3 { margin-bottom: 6px; }
+ol.pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 .pzctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 4px; }
 .pzctrl .chk { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .pzctrl .chk input { width: auto; }
@@ -232,6 +236,12 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
     <div class="head"><h2>Planos de piezas</h2><button id="print-planos" type="button">Imprimir planos</button></div>
     <div id="plano-mueble"></div>
     <div id="plano-piezas"></div>
+  </section>
+
+  <section class="card t-salvia planos-card" id="montaje-card">
+    <h2>Montaje y tornillería</h2>
+    <p class="hint">Según las medidas de la plantilla. Si has cambiado piezas a mano, revísalo.</p>
+    <div id="montaje"></div>
   </section>
 </main>
 
@@ -587,6 +597,8 @@ function compute() {
     }
   });
 
+  const mont = montajeDe(state.tipo, state.tpl || {});
+  if (mont && mont.torn.length) shop.push('', 'Tornillería (aprox., con un 10 % de más; según la plantilla):', ...mont.torn.map(x => `  ${x.medida}: ${fmt(x.n)} ud. (${x.uso})`));
   shop.unshift(`Corte de sierra: ${fmt(kerf)} mm. Medidas en mm.`, '');
   shopText = shop.join('\n');
   $('#shop').textContent = shopText;
@@ -794,7 +806,7 @@ function fieldKind(T, k) { const f = T.fields.find(x => x[0] === k); return f ? 
 
 function renderTpl() {
   const T = TEMPLATES[state.tipo];
-  $('#tpl-card').hidden = !T; if (!T) { renderPlanoMueble(); return; }
+  $('#tpl-card').hidden = !T; if (!T) { renderPlanoMueble(); renderMontaje(); return; }
   state.tpl = { ...T.defaults, ...(state.tpl || {}) };
   $('#tpl-title').textContent = 'Plantilla: ' + T.nombre.toLowerCase();
   $('#tpl-hint').textContent = T.hint;
@@ -815,7 +827,7 @@ function renderTplPreview() {
     `<table class="prev"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th></tr></thead><tbody>` +
     list.map(p => `<tr><td>${esc(p.nombre)}</td><td>${esc(m[p.mk])}</td><td class="n">${tipos[p.mk] === 'unidad' ? '—' : fmt(p.largo) + (p.ancho ? ' × ' + fmt(p.ancho) : '')}</td><td class="n">${p.cant}</td></tr>`).join('') +
     `</tbody></table>` + (info.length ? `<ul class="tplinfo">${info.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '');
-  renderPlanoMueble();
+  renderPlanoMueble(); renderMontaje();
 }
 
 // Genera piezas y materiales de la plantilla en el proyecto p. Reutiliza materiales con el mismo nombre (y su precio).
@@ -1038,7 +1050,7 @@ $('#plano-piezas').addEventListener('change', (e) => {
   p[f] = f === 'veta' ? el.checked : num(el.value);
   const id = el.id; save(); compute(); const nuevo = document.getElementById(id); if (nuevo) nuevo.focus();
 });
-function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); }
+function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); renderMontaje(); }
 let anchoPlanos = 0;
 window.addEventListener('resize', () => { const w = $('#plano-mueble').clientWidth; if (Math.abs(w - anchoPlanos) > 40) { anchoPlanos = w; renderPlanoMueble(); } });
 $('#print-planos').addEventListener('click', () => {
@@ -1048,6 +1060,87 @@ $('#print-planos').addEventListener('click', () => {
   window.print();
   setTimeout(quitar, 1000);
 });
+
+/* ---------- Montaje y tornillería ---------- */
+// Medidas habituales de tornillo (mm) y redondeos.
+const LARGOS_TORN = [10, 12, 16, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
+const tornHasta = (mm) => LARGOS_TORN.find(x => x >= mm) || 200;          // el primero que llega
+const tornMax = (mm) => [...LARGOS_TORN].reverse().find(x => x <= mm) || 10; // el más largo que no atraviesa
+const conMargen = (n) => Math.ceil(n * 1.1);
+
+function montajeDe(tipo, t) {
+  const T = TEMPLATES[tipo]; if (!T || T.build(t).errors.length) return null;
+  const pasos = [], torn = [], notas = [];
+  const add = (uso, medida, n) => { if (n > 0) torn.push({ uso, medida, n: conMargen(n) }); };
+  if (tipo === 'banco') {
+    const L = num(t.largo), A = num(t.ancho), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), g = num(t.travG), tc = num(t.travC), tg = num(t.tapaG), bg = num(t.baldaG);
+    const FL = L - 2 * v, FW = A - 2 * v, nI = Math.max(0, Math.floor(num(t.nInter))), ab = alturaBajoDe(t);
+    add('Travesaños a las patas (2 por unión, atravesando la pata)', `6 × ${tornHasta(P + 50)}`, 16 * 2);
+    if (nI) add('Travesaños intermedios (2 por extremo)', `6 × ${tornHasta(g + 50)}`, nI * 2 * 2);
+    add('Tapa a los travesaños (cada 25 cm)', `4 × ${tornHasta(tg + 25)}`, Math.ceil(2 * (FL + FW) / 250) + nI * Math.ceil(FW / 250));
+    if (t.balda === 'si') add('Balda a los travesaños bajos (cada 30 cm)', `4 × ${tornHasta(bg + 25)}`, Math.ceil(2 * (FL - 2 * P) / 300) + 2);
+    add('Ruedas (4 por rueda)', '6 × 40 (tirafondo)', 16);
+    pasos.push('Corta y lija todas las piezas y escribe a lápiz el nombre de cada una.',
+      `Monta los dos lados cortos: dos patas con un travesaño corto arriba, enrasado con la cabeza de las patas, y otro abajo con su cara de arriba a ${fmt(ab - r)} mm del pie de la pata. Encola y atornilla; comprueba la escuadra.`,
+      'Une los dos lados con los travesaños largos, a las mismas alturas. Los tornillos de los travesaños largos y cortos se cruzan dentro de la pata: desplaza unos 20 mm los de un lado. Mide las dos diagonales del bastidor: tienen que ser iguales.');
+    if (nI) pasos.push(`Reparte los ${nI} travesaños intermedios entre los largos de arriba, a ${fmt((FL - 2 * P - nI * g) / (nI + 1))} mm de hueco entre ellos.`);
+    pasos.push('Atornilla las ruedas al pie de las patas. Pon las de freno al menos en dos esquinas opuestas.');
+    if (t.balda === 'si') pasos.push('Apoya la balda sobre los travesaños bajos y atorníllala.');
+    pasos.push(`Coloca la tapa centrada, con ${fmt(v)} mm de vuelo por cada lado, y atorníllala desde arriba a los travesaños. Avellana para que las cabezas no sobresalgan.`);
+  } else if (tipo === 'estanteria') {
+    const H = num(t.alto), W = num(t.ancho), g = num(t.grosor), z = num(t.zocalo), tr = num(t.traseraG);
+    const { n, tops } = baldasDe(t);
+    add('Laterales a techo, suelo y baldas (3 por extremo)', `4 × ${tornHasta(g + 30)}`, 2 * (2 + n) * 3);
+    if (z > 0) add('Zócalo (2 por extremo)', `4 × ${tornHasta(g + 30)}`, 4);
+    if (t.trasera === 'si') add('Trasera (cada 15 cm por el borde y cada 20 cm en las baldas)', `3 × ${tornHasta(tr + 13)}`, Math.ceil(2 * (H + W) / 150) + n * Math.ceil(W / 200));
+    pasos.push('Corta y lija las piezas.',
+      n ? `Marca en la cara interior de los dos laterales, desde abajo, la cara de arriba de cada balda: ${tops.map(fmt).join(', ')} mm.` : 'Sin baldas intermedias: solo techo y suelo.',
+      `Atornilla el techo y el suelo a un lateral${z > 0 ? ` (el suelo, con su cara de abajo a ${fmt(z)} mm del borde)` : ''}, y luego el otro lateral. Pretaladra con broca de 3 mm y avellana.`);
+    if (z > 0) pasos.push('Mete el zócalo bajo el suelo, enrasado por delante, y atorníllalo a los laterales.');
+    if (n) pasos.push('Coloca las baldas en sus marcas y atorníllalas desde fuera de los laterales.');
+    if (t.trasera === 'si') pasos.push('Tumba el mueble boca abajo, mide las diagonales hasta que sean iguales y atornilla la trasera: es la que mantiene la escuadra.');
+    if (H > 1500) pasos.push('Fíjala a la pared con dos escuadras en la parte de arriba.');
+  } else if (tipo === 'mesa') {
+    const L = num(t.largo), A = num(t.ancho), v = num(t.vuelo), P = num(t.pata), tg = num(t.tapaG);
+    const fl = L - 2 * v - 2 * P, fcorto = A - 2 * v - 2 * P, esc = 2 * Math.ceil(fl / 400) + 2 * Math.ceil(fcorto / 400);
+    add('Faldones a las patas (2 por unión, atravesando la pata)', `6 × ${tornHasta(P + 50)}`, 8 * 2);
+    add(`Escuadras para sujetar la tapa (${esc} escuadras, 4 tornillos cada una)`, `3,5 × ${tornMax(tg - 3)}`, esc * 4);
+    pasos.push('Corta y lija las piezas.',
+      'Monta los dos lados cortos: dos patas con su faldón corto, enrasado con la cabeza de las patas. Encola y atornilla.',
+      'Une los dos lados con los faldones largos. Los tornillos de los dos faldones se cruzan dentro de la pata: desplaza unos 20 mm los de un lado. Mide las diagonales: tienen que ser iguales.',
+      `Pon la tapa boca abajo sobre una manta, centra encima el bastidor con ${fmt(v)} mm de vuelo por cada lado y fíjalo con ${esc} escuadras repartidas por los faldones.`);
+    notas.push(`Los tornillos de las escuadras no pueden pasar de ${fmt(tg - 3)} mm, para que no atraviesen la tapa.`);
+  } else if (tipo === 'cajonera') {
+    const W = num(t.ancho), H = num(t.alto), g = num(t.grosor), fg = num(t.fondoG), G = num(t.guia), hol = num(t.holgura);
+    const n = Math.max(1, Math.floor(num(t.nCaj))), Hi = H - 2 * g, bw = W - 2 * g - hol, bh = Math.floor(Hi / n - 30);
+    add('Cuerpo: techo y base a los laterales (3 por extremo)', `4 × ${tornHasta(g + 30)}`, 12);
+    add('Cajas: delantera y trasera a los laterales (2 por unión)', `4 × ${tornHasta(g + 20)}`, 8 * n);
+    add('Fondos de cajón (cada 10 cm)', `3 × ${tornHasta(fg + 13)}`, n * Math.ceil(2 * (G + bw) / 100));
+    add('Trasera del mueble (cada 15 cm)', `3 × ${tornHasta(fg + 13)}`, Math.ceil(2 * (H + W) / 150));
+    add('Guías, si no traen tornillos (unos 12 por par)', '3,5 × 16', 12 * n);
+    add('Frentes a las cajas, desde dentro (4 por frente)', `4 × ${tornMax(2 * g - 4)}`, 4 * n);
+    if (t.tirador === 'si') add('Tiradores, si no traen tornillos (2 por tirador)', `M4 × ${tornHasta(g + 10)}`, 2 * n);
+    pasos.push('Corta y lija las piezas y pon los cantos antes de montar.',
+      'Monta el cuerpo: techo y base entre los dos laterales. Pretaladra y avellana.',
+      'Mide las diagonales hasta que sean iguales y atornilla la trasera para fijar la escuadra.',
+      `Atornilla la parte fija de las guías en los laterales del cuerpo, a ras del borde delantero. Cada cajón ocupa ${fmt(Hi / n)} mm de alto: pon cada guía a ${fmt(bh / 2)} mm por encima del fondo de su hueco y usa un taco de madera como plantilla para que queden todas iguales.`,
+      `Monta las cajas: la delantera y la trasera van entre los dos laterales. El fondo se clava por debajo. Cada caja queda de ${fmt(bw)} × ${fmt(bh)} × ${fmt(G)} mm.`,
+      'Atornilla la parte móvil de las guías en las cajas y mete los cajones.',
+      'Pega cada frente a su caja con cinta de doble cara, dejando 3 mm entre frentes, y atorníllalo desde dentro de la caja.');
+    if (t.tirador === 'si') pasos.push('Taladra y pon los tiradores, todos a la misma altura en su frente.');
+    notas.push(`Comprueba la holgura que pide tu guía: aquí van ${fmt(hol)} mm entre las dos.`);
+  }
+  notas.push('Cantidades aproximadas, con un 10 % de más.' + (tipo === 'banco' || tipo === 'mesa' ? ' Encola todas las uniones de madera maciza.' : ''));
+  return { pasos, torn, notas };
+}
+
+function renderMontaje() {
+  const r = montajeDe(state.tipo, state.tpl || {});
+  const card = $('#montaje-card'); card.hidden = !r; if (!r) return;
+  $('#montaje').innerHTML = `<div class="montaje"><div><h3>Pasos</h3><ol class="pasos">${r.pasos.map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>
+    <div><h3>Tornillería</h3><table class="prev"><thead><tr><th>Para qué</th><th style="text-align:right">Medida (mm)</th><th style="text-align:right">Cant.</th></tr></thead><tbody>${r.torn.map(x => `<tr><td>${esc(x.uso)}</td><td class="n">${esc(x.medida)}</td><td class="n">${fmt(x.n)}</td></tr>`).join('')}</tbody></table>
+    ${r.notas.map(n => `<p class="hint">${esc(n)}</p>`).join('')}</div></div>`;
+}
 
 /* ---------- Proyectos ---------- */
 function newProject(tipo, nombre) {
