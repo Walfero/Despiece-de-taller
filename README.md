@@ -1,11 +1,10 @@
 # Despiece de taller
 
-App web para sacar el despiece de un mueble, el plan de cortes, la lista para la tienda y el coste. Los precios de los materiales se revisan solos cada lunes en las webs de Obramat, Leroy Merlin y Brico Depôt, y si cambian llega un aviso por Telegram.
+App web para sacar el despiece de un mueble, el plan de cortes, la lista para la tienda y el coste. Cada lunes llega un recordatorio por Telegram con las fichas de Obramat, Leroy Merlin y Brico Depôt y su último precio, para revisarlos a mano.
 
 - `index.html`: la app. Se publica con GitHub Pages y lee `prices.json`.
-- `prices.json`: los productos de cada tienda con su precio actual y el anterior.
-- `history.csv`: histórico de precios. Cada semana se añade una línea por producto.
-- `scripts/update_prices.py`: lee el precio de cada ficha de producto y avisa por Telegram.
+- `prices.json`: los productos de cada tienda con su precio y la fecha en que se revisó.
+- `scripts/recordatorio_precios.py`: manda por Telegram la lista de fichas con su precio y su enlace.
 - `.github/workflows/precios.yml`: lo ejecuta cada lunes. También puedes lanzarlo a mano.
 
 Tus piezas y materiales se guardan solo en tu navegador; el repositorio no los guarda.
@@ -20,12 +19,16 @@ Tus piezas y materiales se guardan solo en tu navegador; el repositorio no los g
    - `TELEGRAM_TOKEN` con el token del bot
    - `TELEGRAM_CHAT_ID` con tu chat id
 3. **GitHub Pages**: en *Settings → Pages*, en *Source* elige *Deploy from a branch*, la rama `main` y la carpeta `/ (root)`. La app quedará en `https://<tu-usuario>.github.io/<repo>/`.
-4. **Primera prueba**: en *Actions → Comprobar precios → Run workflow*. En el registro verás `[OK]` o `[FALLO]` por cada producto.
+4. **Primera prueba**: en *Actions → Recordatorio de precios → Run workflow*. Te llegará el mensaje a Telegram; si faltan los secretos, el registro lo avisa.
 
 ## Añadir o cambiar productos
 
-En `prices.json`, cada material (`pata`, `trav`, `tapa`, `balda`, `rueda`) tiene una lista de ofertas. Para añadir otra, copia una entrada, cambia `id`, `tienda`, `producto`, `url` y `precio` (el aproximado vale; se corrige en la siguiente comprobación). En los tableros indica también `largo` y `ancho` en mm.
+En `prices.json`, cada material (`pata`, `trav`, `tapa`, `balda`, `rueda`) tiene una lista de ofertas. Para añadir otra, copia una entrada, cambia `id`, `tienda`, `producto`, `url` y `precio`. En los tableros indica también `largo` y `ancho` en mm.
 
-## Si una tienda falla
+## Revisar los precios
 
-Algunas webs bloquean las consultas automáticas o cambian sus fichas. Si una falla, el aviso de Telegram te lo dirá, la app la marcará como «no se pudo comprobar» y se mantendrá el último precio conocido. Lo normal es que baste con poner la URL nueva de la ficha.
+Las tres tiendas bloquean las consultas automáticas (Obramat y Leroy Merlin con DataDome, Brico Depôt con Cloudflare), incluso desde una conexión doméstica, así que los precios se revisan a mano. Cuando llegue el recordatorio:
+
+1. Abre las fichas del mensaje. Las marcadas con ⏳ llevan más de 30 días sin revisar.
+2. Si un precio ha cambiado, pulsa «Editar prices.json» en el mensaje y cambia `precio`. Si quieres que la app enseñe si ha subido o bajado, copia el precio viejo en `precio_anterior`.
+3. Pon la fecha de hoy en `comprobado` de esa ficha y en `actualizado` arriba del todo, y guarda (*Commit changes*). La app usa los precios nuevos en cuanto se publica.
