@@ -230,7 +230,7 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 
 <script>
 const KEY = 'despiece-taller-v1';
-const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100, pata: 70, travG: 45, travC: 70, nInter: 2, tapaMat: 'Contrachapado', tapaG: 18, balda: 'si', baldaMat: 'OSB', baldaG: 18 };
+const TPL_DEFAULT = { largo: 1600, ancho: 900, alto: 1100, vuelo: 50, rueda: 100, pata: 70, travG: 45, travC: 70, nInter: 2, alturaBajo: 270, tapaMat: 'Contrachapado', tapaG: 18, balda: 'si', baldaMat: 'OSB', baldaG: 18 };
 let uid = 1; const nid = () => 'i' + (Date.now().toString(36)) + (uid++);
 
 /* Precios consultados en las webs de las tiendas (IVA incluido, península). Cambian según tienda y día. */
@@ -609,6 +609,9 @@ function benchPieces(t) {
   if (pata <= 0) errors.push('El alto no da para las patas: revisa alto, rueda y grosor de la tapa.');
   if (largo <= 0 || corto <= 0 || inter <= 0) errors.push('La tapa es demasiado pequeña para ese vuelo y esas secciones.');
   if (H > 1000) avisos.push('Más de 100 cm de alto es mucho para trabajar de pie; lo habitual son 85-95 cm.');
+  const tc = num(t.travC), ab = alturaBajoDe(t), info = [];
+  if (pata > 0 && (ab - tc < r || ab > H - tg - tc)) errors.push(`Los travesaños bajos tienen que ir entre ${fmt(r + tc)} y ${fmt(H - tg - tc)} mm del suelo (cara de arriba).`);
+  else if (t.balda === 'si') info.push(`Balda a ${fmt(ab + num(t.baldaG))} mm del suelo (cara de arriba), apoyada sobre los travesaños bajos.`);
   const m = {
     pata: `Pino ${fmt(P)}×${fmt(P)}`,
     trav: `Pino ${fmt(g)}×${fmt(num(t.travC))}`,
@@ -627,20 +630,20 @@ function benchPieces(t) {
   list.push({ nombre: 'Rueda', mk: 'rueda', largo: 0, ancho: 0, cant: 4 });
   const tipos = { pata: 'barra', trav: 'barra', tapa: 'tablero', balda: 'tablero', rueda: 'unidad' };
   const roles = rolesDe(m, { pata: 'pata', trav: 'trav', tapa: 'tapa', balda: 'balda', rueda: 'rueda' });
-  return { list, m, tipos, roles, errors, avisos, info: [] };
+  return { list, m, tipos, roles, errors, avisos, info };
 }
+// Proyectos guardados antes de existir el campo: 10 cm entre el pie de la pata y el travesaño.
+const alturaBajoDe = (t) => (t.alturaBajo === '' || t.alturaBajo == null) ? num(t.rueda) + 100 + num(t.travC) : num(t.alturaBajo);
 
 function shelfPieces(t) {
   const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), r = num(t.retr);
-  const n = Math.max(0, Math.floor(num(t.nBaldas)));
-  const Wi = W - 2 * g, errors = [], avisos = [], info = [];
+  const Wi = W - 2 * g, avisos = [], info = [];
+  const { n, huecos, errors, libre } = baldasDe(t);
   if (Wi <= 0 || D <= 0) errors.push('El ancho no da para dos laterales de ese grosor.');
-  const hueco = (H - z - 2 * g - n * g) / (n + 1);
-  if (hueco <= 0) errors.push('No caben tantas baldas en ese alto.');
   if (r >= D) errors.push('El retranqueo de las baldas es mayor que el fondo.');
   if (Wi > 800 && g <= 19) avisos.push('Con más de 80 cm de luz, las baldas de 18 mm se comban con peso (libros). Añade un lateral central o sube el grosor.');
   if (H > 1500 && D < 350) avisos.push('Es alta y poco profunda: fíjala a la pared.');
-  if (hueco > 0) info.push(`Hueco libre entre baldas, repartidas a partes iguales: ${fmt(hueco)} mm.`);
+  if (!errors.length) info.push(libre ? `Hueco libre entre baldas, repartidas a partes iguales: ${fmt(huecos[0])} mm.` : `Huecos libres, de abajo arriba: ${huecos.map(fmt).join(', ')} mm.`);
   const m = { tablero: `${t.mat || 'Tablero'} ${fmt(g)} mm`, trasera: `${t.traseraMat || 'Tablero'} ${fmt(num(t.traseraG))} mm` };
   const list = [
     { nombre: 'Lateral', mk: 'tablero', largo: H, ancho: D, cant: 2 },
@@ -650,6 +653,26 @@ function shelfPieces(t) {
   if (z > 0) list.push({ nombre: 'Zócalo', mk: 'tablero', largo: Wi, ancho: z, cant: 1 });
   if (t.trasera === 'si') list.push({ nombre: 'Trasera', mk: 'trasera', largo: H, ancho: W, cant: 1 });
   return { list, m, tipos: { tablero: 'tablero', trasera: 'tablero' }, roles: rolesDe(m), errors, avisos, info };
+}
+
+// Baldas de la estantería: alturas escritas a mano (cara de arriba, desde el suelo) o repartidas a partes iguales.
+function baldasDe(t) {
+  const H = num(t.alto), g = num(t.grosor), z = num(t.zocalo), errors = [];
+  const suelo = z + g, techo = H - g; // cara de arriba del suelo y cara de abajo del techo
+  const escritas = String(t.alturas || '').split(/[;,\s]+/).map(num).filter(x => x > 0).sort((a, b) => a - b);
+  let tops;
+  if (escritas.length) {
+    tops = escritas;
+    if (tops[0] - g < suelo || tops[tops.length - 1] > techo) errors.push(`Las baldas tienen que ir entre ${fmt(suelo + g)} y ${fmt(techo)} mm del suelo (cara de arriba).`);
+    else if (tops.some((y, i) => i && y - g < tops[i - 1])) errors.push('Hay dos baldas que se pisan: sepáralas al menos el grosor del tablero.');
+  } else {
+    const n = Math.max(0, Math.floor(num(t.nBaldas))), h = (techo - suelo - n * g) / (n + 1);
+    if (h <= 0) errors.push('No caben tantas baldas en ese alto.');
+    tops = [...Array(n)].map((_, i) => suelo + (i + 1) * (h + g));
+  }
+  const bordes = [suelo, ...tops, techo + g];
+  const huecos = bordes.slice(1).map((b, i) => b - g - bordes[i]);
+  return { n: tops.length, tops, huecos, errors, libre: !escritas.length };
 }
 
 function tablePieces(t) {
@@ -712,18 +735,18 @@ const TEMPLATES = {
       ['t', 'Banco (mm)'],
       ['largo', 'Largo de la tapa'], ['ancho', 'Fondo de la tapa'], ['alto', 'Alto total, con ruedas'], ['vuelo', 'Vuelo de la tapa por lado'],
       ['t', 'Ruedas y madera maciza (mm)'],
-      ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'],
+      ['rueda', 'Altura de la rueda'], ['pata', 'Grosor de la pata (cuadrada)'], ['travG', 'Travesaño: grosor'], ['travC', 'Travesaño: canto'], ['nInter', 'Travesaños bajo la tapa'], ['alturaBajo', 'Travesaños bajos: altura del suelo a su cara de arriba'],
       ['t', 'Tableros'],
       ['tapaMat', 'Tapa: material', 'txt'], ['tapaG', 'Tapa: grosor (mm)'], ['balda', 'Balda inferior', SI_NO], ['baldaMat', 'Balda: material', 'txt'], ['baldaG', 'Balda: grosor (mm)'],
     ],
   },
   estanteria: {
     nombre: 'Estantería', build: shelfPieces,
-    defaults: { alto: 1800, ancho: 800, fondo: 300, grosor: 18, nBaldas: 4, zocalo: 70, retr: 0, mat: 'Melamina blanca', trasera: 'si', traseraMat: 'DM', traseraG: 3 },
+    defaults: { alto: 1800, ancho: 800, fondo: 300, grosor: 18, nBaldas: 4, alturas: '', zocalo: 70, retr: 0, mat: 'Melamina blanca', trasera: 'si', traseraMat: 'DM', traseraG: 3 },
     hint: 'Mueble de tablero: laterales enteros, techo, suelo y baldas fijas entre laterales; trasera clavada por detrás.',
     fields: [
       ['t', 'Estantería (mm)'],
-      ['alto', 'Alto total'], ['ancho', 'Ancho total'], ['fondo', 'Fondo'], ['nBaldas', 'Baldas intermedias'], ['zocalo', 'Alto del zócalo (0 = sin zócalo)'], ['retr', 'Retranqueo de las baldas'],
+      ['alto', 'Alto total'], ['ancho', 'Ancho total'], ['fondo', 'Fondo'], ['nBaldas', 'Baldas intermedias'], ['alturas', 'Alturas de las baldas desde el suelo (cara de arriba, separadas por comas; vacío = repartidas)', 'txt'], ['zocalo', 'Alto del zócalo (0 = sin zócalo)'], ['retr', 'Retranqueo de las baldas'],
       ['t', 'Tableros'],
       ['mat', 'Material', 'txt'], ['grosor', 'Grosor (mm)'], ['trasera', 'Trasera', SI_NO], ['traseraMat', 'Trasera: material', 'txt'], ['traseraG', 'Trasera: grosor (mm)'],
     ],
@@ -910,32 +933,34 @@ function vistasMueble(tipo, t) {
   };
   if (tipo === 'banco') {
     const L = num(t.largo), A = num(t.ancho), H = num(t.alto), v = num(t.vuelo), r = num(t.rueda), P = num(t.pata), tc = num(t.travC), tg = num(t.tapaG), bg = num(t.baldaG);
-    const pata = H - r - tg, bajo = tg + pata - 100 - tc; // travesaño bajo a 10 cm del pie de la pata (orientativo)
+    const pata = H - r - tg, bajo = H - alturaBajoDe(t); // cara de arriba del travesaño bajo, medida desde arriba
     const lado = (d, W) => {
       const i = W - 2 * v - 2 * P;
       d.rect(0, 0, W, tg);
       d.rect(v, tg, P, pata); d.rect(W - v - P, tg, P, pata);
       d.rect(v + P, tg, i, tc); d.rect(v + P, bajo, i, tc);
-      if (t.balda === 'si') d.rect(v + P, bajo - bg, i, bg, 'pz2');
+      const bb = t.balda === 'si' ? bg : 0;
+      if (bb) d.rect(v + P, bajo - bb, i, bb, 'pz2');
       [v + P / 2, W - v - P / 2].forEach(cx => { const rr = Math.min(r * 0.38, 45); d.rect(cx - 15, H - r, 30, r - 2 * rr, 'pz2'); d.circle(cx, H - rr, rr, 'pz2'); });
       d.line(-25, H, W + 25, H);
       d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 42); d.cotaV(H - r, H, W, 14, fmt(r));
-      d.cotaV(tg + tc, bajo - (t.balda === 'si' ? bg : 0), 0, -14, fmt(bajo - (t.balda === 'si' ? bg : 0) - tg - tc));
+      d.cotaV(tg + tc, bajo - bb, 0, -14); d.cotaV(bajo - bb, H, 0, -14);
     };
     return v2(L, A, H, d => { lado(d, L); d.title(L / 2, 'FRENTE'); }, d => { lado(d, A); d.title(A / 2, 'LATERAL'); },
-      ['La altura de los travesaños bajos es orientativa (10 cm por encima del pie de la pata).']);
+      [`A la izquierda: hueco libre bajo los travesaños de arriba y altura de ${t.balda === 'si' ? 'la balda' : 'los travesaños bajos'} desde el suelo.`]);
   }
   if (tipo === 'estanteria') {
     const H = num(t.alto), W = num(t.ancho), D = num(t.fondo), g = num(t.grosor), z = num(t.zocalo), re = num(t.retr), tr = t.trasera === 'si' ? num(t.traseraG) : 0;
-    const n = Math.max(0, Math.floor(num(t.nBaldas))), hueco = (H - z - 2 * g - n * g) / (n + 1);
-    const ys = [...Array(n)].map((_, i) => g + hueco * (i + 1) + g * i);
+    const { tops, huecos } = baldasDe(t);
+    const ys = tops.map(a => H - a); // cara de arriba de cada balda, medida desde arriba
+    const bordes = [H - z - g, ...ys, g]; // de abajo arriba
     return v2(W, D + tr, H, d => {
       d.rect(0, 0, g, H); d.rect(W - g, 0, g, H); d.rect(g, 0, W - 2 * g, g); d.rect(g, H - z - g, W - 2 * g, g);
       if (z > 0) d.rect(g, H - z, W - 2 * g, z, 'pz2');
       ys.forEach(y => d.rect(g, y, W - 2 * g, g));
       d.line(-25, H, W + 25, H);
       d.cotaH(0, W, H, 26); d.cotaV(0, H, W, 14);
-      if (hueco > 0) d.cotaV(g, g + hueco, 0, -14, fmt(hueco));
+      huecos.forEach((h, i) => { if (h > 0) d.cotaV(bordes[i] - h, bordes[i], 0, -14, fmt(h)); });
       if (z > 0) d.cotaV(H - z, H, 0, -14, fmt(z));
       d.title(W / 2, 'FRENTE');
     }, d => {
