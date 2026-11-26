@@ -85,6 +85,8 @@ section.card[class*="t-"] input, section.card[class*="t-"] select, section.card[
   .mrow .f-price { grid-column: 3 / 5; }
 }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
+#buy, #montaje .montaje > div { overflow-x: auto; min-width: 0; }
+table.prev td a { overflow-wrap: anywhere; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .tile .v { font: 700 24px/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -129,6 +131,8 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
 .plano .veta { stroke: var(--piece-line); stroke-width: .7; opacity: .45; }
 .plano .canto { stroke: color-mix(in srgb, var(--t-pizarra) 75%, var(--ink)); stroke-width: 3.5; stroke-linecap: square; }
+.io { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--line); }
+#share-url { font: 12px var(--font-mono); }
 td.ok { width: 18px; color: var(--muted); }
 .montaje { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
 @media (max-width: 760px) { .montaje { grid-template-columns: minmax(0, 1fr); } }
@@ -195,7 +199,18 @@ ol.pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column;
       <button class="primary" id="np-create" type="button">Crear</button>
       <button id="np-cancel" type="button">Cancelar</button>
     </div>
-    <p class="hint">Cada proyecto guarda sus medidas, piezas, materiales y precios en este navegador.</p>
+    <div class="io">
+      <div class="btns">
+        <button id="exp-uno" type="button">Descargar proyecto</button>
+        <button id="exp-todo" type="button">Copia de todos</button>
+        <button id="imp-btn" type="button">Abrir archivo…</button>
+        <button id="share-btn" type="button">Compartir enlace</button>
+        <input type="file" id="imp-file" accept=".json,application/json" hidden>
+        <span class="copied" id="io-msg" aria-live="polite"></span>
+      </div>
+      <input id="share-url" readonly hidden aria-label="Enlace del proyecto">
+    </div>
+    <p class="hint">Cada proyecto guarda sus medidas, piezas, materiales y precios en este navegador. Descárgalo para tener una copia o pasarlo a otro móvil u ordenador; el enlace lleva el proyecto dentro y abre una copia.</p>
   </section>
 
   <div class="col">
@@ -1253,6 +1268,84 @@ $('#proj-del').addEventListener('click', (e) => {
   openProject(store.list[0].id);
 });
 
+
+/* ---------- Guardar en archivo y compartir ---------- */
+const ROLES = ['pata', 'trav', 'tapa', 'balda', 'rueda', 'melamina', 'dm', 'trasera', 'guias', 'tirador'];
+// Copia limpia de un proyecto que viene de fuera (archivo o enlace): ids nuevos, solo campos conocidos y tipos correctos.
+function limpiarProyecto(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.mats) || !Array.isArray(d.pieces)) return null;
+  const txt = (v, def, n = 120) => String(v ?? def).slice(0, n);
+  const ids = new Map();
+  const mats = d.mats.slice(0, 300).filter(m => m && typeof m === 'object').map(m => {
+    const id = nid(); ids.set(String(m.id), id);
+    const r = { id, nombre: txt(m.nombre, 'Material'), tipo: ['barra', 'tablero', 'unidad'].includes(m.tipo) ? m.tipo : 'barra', largo: num(m.largo), ancho: num(m.ancho), precio: m.precio === '' || m.precio == null ? '' : String(num(m.precio)) };
+    if (ROLES.includes(m.rol)) { r.rol = m.rol; r.oferta = m.oferta === 'manual' ? 'manual' : (Number.isInteger(m.oferta) && m.oferta >= 0 ? m.oferta : 'auto'); }
+    return r;
+  });
+  const cant2 = (v) => Math.max(0, Math.min(2, Math.floor(num(v))));
+  const pieces = d.pieces.slice(0, 500).filter(p => p && typeof p === 'object').map(p => ({
+    id: nid(), nombre: txt(p.nombre, 'Pieza'), mat: ids.get(String(p.mat)) || (mats[0] ? mats[0].id : ''),
+    largo: num(p.largo), ancho: num(p.ancho), cant: Math.max(0, Math.floor(num(p.cant))), cantoL: cant2(p.cantoL), cantoA: cant2(p.cantoA), veta: !!p.veta,
+  }));
+  const T = TEMPLATES[d.tipo];
+  let tpl = null;
+  if (T) {
+    tpl = { ...T.defaults };
+    Object.keys(T.defaults).forEach(k => { if (d.tpl && d.tpl[k] != null) tpl[k] = fieldKind(T, k) === 'n' ? num(d.tpl[k]) : txt(d.tpl[k], '', 200); });
+  }
+  return { id: nid(), nombre: txt(d.nombre, 'Proyecto'), tipo: T ? d.tipo : LIBRE, kerf: num(d.kerf), tpl, mats, pieces };
+}
+
+function descargar(nombre, datos) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(datos, null, 1)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+const nombreArchivo = (n) => (String(n || 'proyecto').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'proyecto');
+const avisoArchivo = (t) => { $('#io-msg').textContent = t; setTimeout(() => { if ($('#io-msg').textContent === t) $('#io-msg').textContent = ''; }, 5000); };
+
+$('#exp-uno').addEventListener('click', () => descargar(`despiece-${nombreArchivo(state.nombre)}.json`, { app: 'despiece-taller', version: 2, proyecto: state }));
+$('#exp-todo').addEventListener('click', () => descargar(`despiece-copia-${new Date().toISOString().slice(0, 10)}.json`, { app: 'despiece-taller', version: 2, list: store.list }));
+$('#imp-btn').addEventListener('click', () => $('#imp-file').click());
+$('#imp-file').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let d; try { d = JSON.parse(await f.text()); } catch (err) { avisoArchivo('Ese archivo no es una copia de esta app.'); return; }
+  const lista = Array.isArray(d && d.list) ? d.list : [d && d.proyecto ? d.proyecto : d];
+  const nuevos = lista.map(limpiarProyecto).filter(Boolean);
+  if (!nuevos.length) { avisoArchivo('Ese archivo no tiene ningún proyecto.'); return; }
+  store.list.push(...nuevos); openProject(nuevos[0].id);
+  avisoArchivo(nuevos.length === 1 ? `Añadido «${nuevos[0].nombre}».` : `Añadidos ${nuevos.length} proyectos; tus proyectos de antes siguen ahí.`);
+});
+
+// Enlace: el proyecto va comprimido dentro de la dirección (#p=…), así que no se sube a ningún sitio.
+const aB64 = (bytes) => { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const deB64 = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function flujo(bytes, Stream, modo) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new Stream(modo))).arrayBuffer()); }
+async function codificar(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (window.CompressionStream) { try { return 'z' + aB64(await flujo(bytes, CompressionStream, 'deflate-raw')); } catch (e) {} }
+  return 'j' + aB64(bytes);
+}
+async function decodificar(t) {
+  const bytes = deB64(t.slice(1));
+  return JSON.parse(new TextDecoder().decode(t[0] === 'z' ? await flujo(bytes, DecompressionStream, 'deflate-raw') : bytes));
+}
+$('#share-btn').addEventListener('click', async () => {
+  const { id, ...p } = state;
+  const url = location.href.split('#')[0] + '#p=' + await codificar(p);
+  $('#share-url').value = url; $('#share-url').hidden = false;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: state.nombre || 'Proyecto', url }); return; } catch (e) { /* cancelado: queda el enlace a la vista */ } }
+  try { await navigator.clipboard.writeText(url); avisoArchivo('Enlace copiado. Quien lo abra recibe una copia del proyecto.'); }
+  catch (e) { $('#share-url').select(); avisoArchivo('Copia el enlace de la casilla.'); }
+});
+async function abrirEnlace() {
+  const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/); if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  let p = null; try { p = limpiarProyecto(await decodificar(m[1])); } catch (e) {}
+  if (!p) { showAlert('El enlace del proyecto está incompleto o dañado.'); return; }
+  store.list.push(p); openProject(p.id); showAlert(`Proyecto «${p.nombre}» añadido desde el enlace. Tus proyectos de antes siguen ahí.`);
+}
+
 /* ---------- Arranque ---------- */
 loadStore();
 function renderAll() { renderProj(); $('#kerf').value = state.kerf; renderTpl(); renderPieces(); renderMats(); compute(); }
@@ -1279,6 +1372,8 @@ $('#copy').addEventListener('click', async () => {
   setTimeout(() => $('#copied').textContent = '', 2500);
 });
 renderAll();
+abrirEnlace();
+window.addEventListener("hashchange", abrirEnlace);
 // Precios revisados a mano (prices.json en el mismo repositorio).
 fetch('prices.json', { cache: 'no-cache' })
   .then(r => r.ok ? r.json() : Promise.reject(r.status))

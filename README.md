@@ -1,6 +1,6 @@
 # Despiece de taller
 
-App web para sacar el despiece de un mueble, el plan de cortes, los planos de cada pieza con sus medidas (y del mueble montado, de frente y de lado), la lista para la tienda y el coste. 
+App web para sacar el despiece de un mueble, el plan de cortes, los planos de cada pieza con sus medidas, cantos y veta (y del mueble montado, de frente y de lado), los pasos de montaje con la tornillería, la lista para la tienda y el coste. La «Hoja de taller» lo imprime todo o lo guarda en PDF. 
 
 Cada lunes llega un recordatorio por Telegram con las fichas de Obramat, Leroy Merlin y Brico Depôt y su último precio, para revisarlos a mano.
 
@@ -9,7 +9,7 @@ Cada lunes llega un recordatorio por Telegram con las fichas de Obramat, Leroy M
 - `scripts/recordatorio_precios.py`: manda por Telegram la lista de fichas con su precio y su enlace.
 - `.github/workflows/precios.yml`: lo ejecuta cada lunes. También puedes lanzarlo a mano.
 
-Tus piezas y materiales se guardan solo en tu navegador; el repositorio no los guarda.
+Tus piezas y materiales se guardan solo en tu navegador; el repositorio no los guarda. Puedes descargar un proyecto (o una copia de todos) en un archivo `.json` y abrirlo en otro sitio, o compartirlo con un enlace que lleva el proyecto dentro.
 
 ## Puesta en marcha (una vez)
 
