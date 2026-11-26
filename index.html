@@ -129,6 +129,7 @@ table.prev td.n { text-align: right; font-family: var(--font-mono); font-variant
 .plano .suelo { stroke: var(--muted); stroke-width: 1.5; }
 .plano .veta { stroke: var(--piece-line); stroke-width: .7; opacity: .45; }
 .plano .canto { stroke: color-mix(in srgb, var(--t-pizarra) 75%, var(--ink)); stroke-width: 3.5; stroke-linecap: square; }
+td.ok { width: 18px; color: var(--muted); }
 .montaje { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
 @media (max-width: 760px) { .montaje { grid-template-columns: minmax(0, 1fr); } }
 .montaje h3 { margin-bottom: 6px; }
@@ -142,6 +143,21 @@ ol.pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column;
 .plano text { fill: var(--ink); font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; }
 .plano text.t { fill: var(--muted); font: 600 11px var(--font-body); letter-spacing: .04em; }
 @media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --bg: #fff; --surface: #fff; --ink: #1c2422; --muted: #5d6965; --line: #c9d1ce; --accent: #c27a12; --piece: #f3d9a4; --piece-line: #a8690e; --waste: #eceff0; --bad: #b3261e; color-scheme: light;
+  }
+  section.card { break-inside: auto; }
+  pre.shop { max-height: none; overflow: visible; }
+  .diag, .mat > div { break-inside: avoid; }
+  body.hoja-taller { background: #fff; font-size: 12px; }
+  body.hoja-taller header, body.hoja-taller .projbar, body.hoja-taller main > .col:first-of-type, body.hoja-taller #print-planos, body.hoja-taller #copy, body.hoja-taller .pzctrl { display: none !important; }
+  body.hoja-taller main { display: block; padding: 0; }
+  body.hoja-taller main > .col { display: block; }
+  body.hoja-taller section.card { margin-bottom: 12px; padding: 10px; }
+  body.hoja-taller #hoja { display: flex !important; }
+  body.hoja-taller .pzcard, body.hoja-taller .vistas > div, body.hoja-taller .montaje > div { break-inside: avoid; }
+  body.hoja-taller #planos-card { break-before: page; }
+  body.hoja-taller main > .col:last-of-type > section:first-child { display: none; }
   body.solo-planos { background: #fff; }
   body.solo-planos header, body.solo-planos main > :not(.planos-card), body.solo-planos #print-planos { display: none !important; }
   body.solo-planos main { display: block; padding: 0; }
@@ -159,10 +175,12 @@ ol.pasos { margin: 0; padding-left: 22px; display: flex; flex-direction: column;
 </header>
 
 <main>
+  <section class="card hoja" id="hoja" hidden></section>
   <section class="card t-gris projbar" aria-label="Proyectos">
     <div class="head"><h2>Proyecto</h2>
       <div class="btns">
         <button class="primary" id="proj-new-btn" type="button" aria-expanded="false" aria-controls="proj-new">+ Nuevo</button>
+        <button id="hoja-btn" type="button" title="Abre la impresión: elige «Guardar como PDF»">Hoja de taller (PDF)</button>
         <button id="proj-dup" type="button">Duplicar</button>
         <button id="proj-del" type="button">Borrar</button>
       </div>
@@ -1053,13 +1071,35 @@ $('#plano-piezas').addEventListener('change', (e) => {
 function renderPlanos() { renderPlanoMueble(); renderPlanoPiezas(); renderMontaje(); }
 let anchoPlanos = 0;
 window.addEventListener('resize', () => { const w = $('#plano-mueble').clientWidth; if (Math.abs(w - anchoPlanos) > 40) { anchoPlanos = w; renderPlanoMueble(); } });
-$('#print-planos').addEventListener('click', () => {
-  document.body.classList.add('solo-planos');
-  const quitar = () => { document.body.classList.remove('solo-planos'); window.removeEventListener('afterprint', quitar); };
+// Imprime con una clase en <body> que decide qué se ve (el resto lo oculta el CSS de impresión).
+function imprimir(clase) {
+  document.body.classList.add(clase);
+  const quitar = () => { document.body.classList.remove(clase); window.removeEventListener('afterprint', quitar); };
   window.addEventListener('afterprint', quitar);
   window.print();
   setTimeout(quitar, 1000);
-});
+}
+$('#print-planos').addEventListener('click', () => imprimir('solo-planos'));
+
+// Hoja de taller: portada con el despiece completo; detrás, compra, planos de corte, planos de piezas y montaje.
+function renderHoja() {
+  const T = TEMPLATES[state.tipo], hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  const medidas = T ? T.fields.filter(f => f[0] !== 't' && state.tpl[f[0]] !== '' && state.tpl[f[0]] != null)
+    .map(([k, label, kind]) => `${label}: ${Array.isArray(kind) ? (kind.find(o => o[0] === state.tpl[k]) || [, state.tpl[k]])[1] : (kind === 'txt' ? state.tpl[k] : fmt(num(state.tpl[k])))}`) : [];
+  const filas = state.pieces.map(p => {
+    const m = matById(p.mat) || {}; const tab = m.tipo === 'tablero';
+    const extra = [tab && p.veta ? 'veta a lo largo' : '', tab && num(p.cantoL) ? `canto ${fmt(num(p.cantoL))}× largo` : '', tab && num(p.cantoA) ? `canto ${fmt(num(p.cantoA))}× ancho` : ''].filter(Boolean).join(', ');
+    const med = m.tipo === 'unidad' ? '—' : fmt(num(p.largo)) + (tab ? ' × ' + fmt(num(p.ancho)) : '');
+    return `<tr><td class="ok">☐</td><td>${esc(p.nombre)}</td><td>${esc(m.nombre || '')}</td><td class="n">${med}</td><td class="n">${fmt(num(p.cant))}</td><td>${esc(extra)}</td></tr>`;
+  }).join('');
+  $('#hoja').innerHTML = `<div class="head"><h2>${esc(state.nombre || 'Proyecto')}</h2><span class="hint">${T ? esc(T.nombre) + ' · ' : ''}${hoy}</span></div>
+    ${medidas.length ? `<p class="hint">${esc(medidas.join(' · '))}</p>` : ''}
+    <div class="tiles">${$('#tiles').innerHTML}</div>
+    <h3>Despiece (medidas de corte en mm)</h3>
+    <table class="prev"><thead><tr><th></th><th>Pieza</th><th>Material</th><th style="text-align:right">Medida</th><th style="text-align:right">Cant.</th><th>Notas</th></tr></thead><tbody>${filas}</tbody></table>
+    <p class="hint">Marca ☐ cada pieza al cortarla. Corte de sierra: ${fmt(num(state.kerf))} mm.</p>`;
+}
+$('#hoja-btn').addEventListener('click', () => { renderHoja(); imprimir('hoja-taller'); });
 
 /* ---------- Montaje y tornillería ---------- */
 // Medidas habituales de tornillo (mm) y redondeos.
